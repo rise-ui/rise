@@ -17,13 +17,8 @@ fn token_rgb_to_webrender_color(color: Color) -> ColorF {
   use palette::rgb::{ Rgb, Srgb };
   use palette::Alpha;
 
-  let red = (color.red / 255) as f32;
-  let green = (color.green / 255) as f32;
-  let blue = (color.blue / 255) as f32;
-  let alpha = (color.alpha / 255) as f32;
-
-//  let rgb = Alpha::<Rgb<Srgb, f32>, f32>::new_u8(color.red, color.green, color.blue, color.alpha);
-  return ColorF::new(red, green, blue, alpha);
+  let rgb: Alpha<Rgb<Srgb, f32>, f32> = Alpha::new_u8(color.red, color.green, color.blue, color.alpha);
+  return ColorF::new(rgb.red, rgb.green, rgb.blue, rgb.alpha);
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +56,6 @@ impl Style {
   }
 
   pub fn draw(&mut self, builder_context: Rc<RefCell<RenderBuilder>>) {
-    let mut builder = builder_context.borrow_mut().builder.clone();
     let mut theme_styles: Vec<ThemeStyle> = vec![];
     // let mut flex_styles: Vec<FlexStyle> = vec![];
 
@@ -97,7 +91,7 @@ impl Style {
       // FilterOp::Opacity(PropertyBinding::Binding(self.opacity_key), self.opacity),
     ];
 
-    builder.push_stacking_context(
+    builder_context.borrow_mut().builder.push_stacking_context(
       &container,
       ScrollPolicy::Scrollable,
       None,
@@ -111,14 +105,16 @@ impl Style {
     for style in theme_styles.iter() {
       match style {
         &ThemeStyle::BackgroundColor(color) => {
-          let prepared_color = token_rgb_to_webrender_color(color.clone());
-          builder.push_rect(&container, prepared_color);
+//          let prepared_color = token_rgb_to_webrender_color(color.clone());
+//          println!("BackgroundColor: {:?} %%%% {:?}", color, prepared_color);
+//
+//          builder_context.borrow_mut().builder.push_rect(&container, prepared_color);
         },
         _ => {}
       }
     }
 
-    builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 1.0));
-    builder.pop_stacking_context();
+    builder_context.borrow_mut().builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 0.5));
+    // builder_context.borrow_mut().builder.pop_stacking_context();
   }
 }

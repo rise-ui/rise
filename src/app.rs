@@ -29,7 +29,7 @@ impl App {
       .with_multitouch()
       .with_decorations(false)
       .with_transparency(true)
-      .with_dimensions(700, 700);
+      .with_dimensions(1000, 1000);
 
     let mut window = Window::new(window_builder, &event_loop);
     let webrender_context = WebRenderContext::new(&mut window, &event_loop);
@@ -69,22 +69,25 @@ impl App {
       }
 
       let mut builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
-      test_draw(builder_context, webrender_context.clone(), window.clone());
+      // test_draw(builder_context, webrender_context.clone(), window.clone());
 
-//      let builder_context = Rc::new(RefCell::new(builder_context));
-//
-//      // Render blocks
-//      self.layout.borrow_mut().calculate(window.borrow().size());
-//      // trace_nodes(&self.layout.borrow().root, 0);
-//      self.layout.borrow_mut().render(builder_context.clone());
-//
-//      webrender_context.borrow_mut().set_display_list(
-//        builder_context.borrow().builder.clone(),
-//        builder_context.borrow().resources.clone(),
-//        window.borrow().size_dp()
-//      );
-//
-//      webrender_context.borrow_mut().update(window.borrow().size_px());
+      let builder_context = Rc::new(RefCell::new(builder_context));
+
+      // Render blocks
+      self.layout.borrow_mut().calculate(window.borrow().size());
+
+      println!("\n Trace Webrender Nodes\n");
+      self.layout.borrow_mut().render(builder_context.clone());
+      builder_context.borrow_mut().builder.print_display_list();
+
+
+      webrender_context.borrow_mut().set_display_list(
+        builder_context.borrow().builder.clone(),
+        builder_context.borrow().resources.clone(),
+        window.borrow().size_dp()
+      );
+
+      webrender_context.borrow_mut().update(window.borrow().size_px());
       window.borrow_mut().swap_buffers();
 
       glutin::ControlFlow::Continue
@@ -125,6 +128,9 @@ fn test_draw(mut builder_context: RenderBuilder, webrender_context: Rc<RefCell<W
 
   builder_context.builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 1.0));
   builder_context.builder.pop_stacking_context();
+
+  println!("\n Trace Webrender Nodes\n");
+  builder_context.builder.print_display_list();
 
   webrender_context.borrow_mut().set_display_list(
     builder_context.builder,
