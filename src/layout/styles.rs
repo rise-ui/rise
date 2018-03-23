@@ -17,7 +17,7 @@ fn token_rgb_to_webrender_color(color: Color) -> ColorF {
   use palette::rgb::{ Rgb, Srgb };
   use palette::Alpha;
 
-  let rgb: Alpha<Rgb<Srgb, f32>, f32> = Alpha::new_u8(color.red, color.green, color.blue, color.alpha);
+  let rgb = Alpha::<Rgb, _>::new_u8(color.red, color.green, color.blue, color.alpha);
   return ColorF::new(rgb.red, rgb.green, rgb.blue, rgb.alpha);
 }
 
@@ -77,7 +77,7 @@ impl Style {
     );
 
     let mut complex_clip = ComplexClipRegion {
-      radii: BorderRadius::uniform(3.0),
+      radii: BorderRadius::uniform(10.0),
       mode: ClipMode::Clip,
       rect: bounds,
     };
@@ -87,34 +87,30 @@ impl Style {
       .. LayoutPrimitiveInfo::new(bounds)
     };
 
-    let filters = vec![
-      // FilterOp::Opacity(PropertyBinding::Binding(self.opacity_key), self.opacity),
-    ];
-
-    builder_context.borrow_mut().builder.push_stacking_context(
-      &container,
-      ScrollPolicy::Scrollable,
-      None,
-      TransformStyle::Flat,
-      None,
-      MixBlendMode::Normal,
-      filters,
-    );
+//    builder_context.borrow_mut().builder.push_stacking_context(
+//      &container,
+//      ScrollPolicy::Scrollable,
+//      None,
+//      TransformStyle::Flat,
+//      None,
+//      MixBlendMode::Normal,
+//      vec![],
+//    );
 
     // let details = BorderDetails::Normal(border_details)
+
     for style in theme_styles.iter() {
       match style {
         &ThemeStyle::BackgroundColor(color) => {
-//          let prepared_color = token_rgb_to_webrender_color(color.clone());
-//          println!("BackgroundColor: {:?} %%%% {:?}", color, prepared_color);
-//
-//          builder_context.borrow_mut().builder.push_rect(&container, prepared_color);
+          let prepared_color = token_rgb_to_webrender_color(color.clone());
+          //println!("BackgroundColor: {:?} %%%% {:?}", color, prepared_color);
+
+          builder_context.borrow_mut().builder.push_rect(&container, prepared_color);
         },
         _ => {}
       }
     }
 
-    builder_context.borrow_mut().builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 0.5));
     // builder_context.borrow_mut().builder.pop_stacking_context();
   }
 }

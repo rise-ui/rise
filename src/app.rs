@@ -70,16 +70,17 @@ impl App {
 
       let mut builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
       // test_draw(builder_context, webrender_context.clone(), window.clone());
-
       let builder_context = Rc::new(RefCell::new(builder_context));
 
       // Render blocks
       self.layout.borrow_mut().calculate(window.borrow().size());
 
-      println!("\n Trace Webrender Nodes\n");
       self.layout.borrow_mut().render(builder_context.clone());
-      builder_context.borrow_mut().builder.print_display_list();
+      builder_context.borrow_mut().builder.pop_stacking_context();
 
+      println!("\nNodes\n");
+      trace_nodes(&self.layout.borrow_mut().root, 0);
+      builder_context.borrow_mut().builder.print_display_list();
 
       webrender_context.borrow_mut().set_display_list(
         builder_context.borrow().builder.clone(),

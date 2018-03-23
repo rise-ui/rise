@@ -42,25 +42,56 @@ use layout::view::View;
 use app::App;
 
 fn main() {
-
-  let item_style = style! {
-    background-color: { rgb(0, 0, 0) };
-    height: { 300 px };
-    width: { 250 px };
-  };
-
-  let container_style = style! {
-    background-color: { rgba(255, 255, 255, 0.8) };
-    justify-content: { center };
-    flex-direction: { column };
-    align-items: { center };
-  };
-
   let mut layout = Layout::new(View::new(
-    container_style,
+    style! {
+      background-color: { rgba(139, 195, 74, 1.0) };
+      justify-content: { space-betweenft7, };
+      flex-direction: { row };
+      align-items: { center };
+    },
+
     vec![
-      View::new(item_style.clone(), vec![]),
-      View::new(item_style.clone(), vec![])
+      View::new(style! {
+        background-color: { rgba(255, 255, 255, 1.0) };
+        margin-right: { 10 px };
+        height: { 300 px };
+        width: { 300 px };
+      }, vec![]),
+
+      View::new(style! {
+        background-color: { rgba(33, 150, 243, 1.0) };
+        margin-left: { 10 px };
+        height: { 300 px };
+        width: { 300 px };
+      }, vec![]),
+
+      View::new(style! {
+        background-color: { rgba(255, 87, 34, 1.0) };
+        justify-content: { space-between };
+        flex-direction: { column };
+        align-items: { center };
+        margin-left: { 20 px };
+        height: { 300 px };
+        width: { 300 px };
+      }, vec![
+//        View::new(style! {
+//          background-color: { rgba(255, 255, 255, 1.0) };
+//          height: { 30 px };
+//          width: { 30 px };
+//        }, vec![]),
+//
+//        View::new(style! {
+//          background-color: { rgba(33, 150, 243, 1.0) };
+//          height: { 30 px };
+//          width: { 30 px };
+//        }, vec![]),
+//
+//        View::new(style! {
+//          background-color: { rgba(255, 87, 34, 1.0) };
+//          height: { 30 px };
+//          width: { 30 px };
+//        }, vec![])
+      ])
     ]
   ));
 
