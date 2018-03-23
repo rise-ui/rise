@@ -11,7 +11,7 @@ use layout::styles::Style;
 use layout::view::View;
 
 // Core contexts
-use render::WebRenderContext;
+use render::{ WebRenderContext, RenderBuilder };
 use window::Window;
 
 pub struct App {
@@ -68,20 +68,23 @@ impl App {
         _ => ()
       }
 
-      let builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
-      let builder_context = Rc::new(RefCell::new(builder_context));
+      let mut builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
+      test_draw(builder_context, webrender_context.clone(), window.clone());
 
-      // Render blocks
-      self.layout.borrow_mut().calculate(window.borrow().size());
-      // trace_nodes(&self.layout.borrow().root, 0);
-      self.layout.borrow_mut().render(builder_context.clone());
-
-      webrender_context.borrow_mut().set_display_list(
-        builder_context.borrow().builder.clone(),
-        builder_context.borrow().resources.clone(),
-        window.borrow().size_dp()
-      );
-      webrender_context.borrow_mut().update(window.borrow().size_px());
+//      let builder_context = Rc::new(RefCell::new(builder_context));
+//
+//      // Render blocks
+//      self.layout.borrow_mut().calculate(window.borrow().size());
+//      // trace_nodes(&self.layout.borrow().root, 0);
+//      self.layout.borrow_mut().render(builder_context.clone());
+//
+//      webrender_context.borrow_mut().set_display_list(
+//        builder_context.borrow().builder.clone(),
+//        builder_context.borrow().resources.clone(),
+//        window.borrow().size_dp()
+//      );
+//
+//      webrender_context.borrow_mut().update(window.borrow().size_px());
       window.borrow_mut().swap_buffers();
 
       glutin::ControlFlow::Continue
@@ -90,4 +93,44 @@ impl App {
 //    @TODO Fix `move out of borrowed content`
 //    webrender_context.borrow_mut().deinit();
   }
+}
+
+// But this is worked!?
+fn test_draw(mut builder_context: RenderBuilder, webrender_context: Rc<RefCell<WebRenderContext>>, window: Rc<RefCell<Window>>) {
+  let bounds = LayoutRect::new(
+    LayoutPoint::new(10.0, 10.0),
+    LayoutSize::new(660.0, 660.0),
+  );
+
+  let mut complex_clip = ComplexClipRegion {
+    radii: BorderRadius::uniform(3.0),
+    mode: ClipMode::Clip,
+    rect: bounds,
+  };
+
+  let mut container = LayoutPrimitiveInfo {
+    local_clip: LocalClip::RoundedRect(bounds, complex_clip),
+    .. LayoutPrimitiveInfo::new(bounds)
+  };
+
+  builder_context.builder.push_stacking_context(
+    &container,
+    ScrollPolicy::Scrollable,
+    None,
+    TransformStyle::Flat,
+    None,
+    MixBlendMode::Normal,
+    vec![],
+  );
+
+  builder_context.builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 1.0));
+  builder_context.builder.pop_stacking_context();
+
+  webrender_context.borrow_mut().set_display_list(
+    builder_context.builder,
+    builder_context.resources,
+    window.borrow().size_dp()
+  );
+
+  webrender_context.borrow_mut().update(window.borrow().size_px());
 }
