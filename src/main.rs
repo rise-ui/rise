@@ -45,7 +45,7 @@ fn main() {
   let mut layout = Layout::new(View::new(
     style! {
       background-color: { rgba(139, 195, 74, 1.0) };
-      justify-content: { space-betweenft7, };
+      justify-content: { center };
       flex-direction: { row };
       align-items: { center };
     },
@@ -73,24 +73,27 @@ fn main() {
         margin-left: { 20 px };
         height: { 300 px };
         width: { 300 px };
+
+        padding-bottom: { 20 px };
+        padding-top: { 20 px };
       }, vec![
-//        View::new(style! {
-//          background-color: { rgba(255, 255, 255, 1.0) };
-//          height: { 30 px };
-//          width: { 30 px };
-//        }, vec![]),
-//
-//        View::new(style! {
-//          background-color: { rgba(33, 150, 243, 1.0) };
-//          height: { 30 px };
-//          width: { 30 px };
-//        }, vec![]),
-//
-//        View::new(style! {
-//          background-color: { rgba(255, 87, 34, 1.0) };
-//          height: { 30 px };
-//          width: { 30 px };
-//        }, vec![])
+        View::new(style! {
+          background-color: { rgba(255, 255, 255, 1.0) };
+          height: { 50 px };
+          width: { 50 px };
+        }, vec![]),
+
+        View::new(style! {
+          background-color: { rgba(33, 150, 243, 1.0) };
+          height: { 50 px };
+          width: { 50 px };
+        }, vec![]),
+
+        View::new(style! {
+          background-color: { rgba(25, 118, 210, 1.0) };
+          height: { 50 px };
+          width: { 50 px };
+        }, vec![])
       ])
     ]
   ));

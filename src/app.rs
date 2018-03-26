@@ -68,9 +68,14 @@ impl App {
         _ => ()
       }
 
-      let mut builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
-      // test_draw(builder_context, webrender_context.clone(), window.clone());
+      let builder_context = webrender_context.borrow_mut().render_builder(window.borrow().size_dp());
       let builder_context = Rc::new(RefCell::new(builder_context));
+
+//      experemental_draw_context(
+//        builder_context.clone(),
+//        webrender_context.clone(),
+//        window.clone()
+//      );
 
       // Render blocks
       self.layout.borrow_mut().calculate(window.borrow().size());
@@ -99,43 +104,91 @@ impl App {
   }
 }
 
-// But this is worked!?
-fn test_draw(mut builder_context: RenderBuilder, webrender_context: Rc<RefCell<WebRenderContext>>, window: Rc<RefCell<Window>>) {
-  let bounds = LayoutRect::new(
-    LayoutPoint::new(10.0, 10.0),
-    LayoutSize::new(660.0, 660.0),
+// Experiments of drawing on raw builder state
+fn experemental_draw_context(builder_context: Rc<RefCell<RenderBuilder>>, webrender_context: Rc<RefCell<WebRenderContext>>, window: Rc<RefCell<Window>>) {
+  fn draw_view_context(builder_context: Rc<RefCell<RenderBuilder>>, color: ColorF, position: (f32, f32), size: (f32, f32)) {
+    let bounds = LayoutRect::new(
+      LayoutPoint::new(position.0, position.1),
+      LayoutSize::new(size.0, size.1),
+    );
+
+    let mut complex_clip = ComplexClipRegion {
+      radii: BorderRadius::uniform(3.0),
+      mode: ClipMode::Clip,
+      rect: bounds,
+    };
+
+    let mut container = LayoutPrimitiveInfo {
+      local_clip: LocalClip::RoundedRect(bounds, complex_clip),
+      .. LayoutPrimitiveInfo::new(bounds)
+    };
+
+    builder_context.borrow_mut().builder.push_stacking_context(
+      &container,
+      ScrollPolicy::Scrollable,
+      None,
+      TransformStyle::Flat,
+      None,
+      MixBlendMode::Normal,
+      vec![],
+    );
+
+    builder_context.borrow_mut().builder.push_rect(&container, color);
+  }
+
+  //  Draw main
+
+  // Root(childs)
+  draw_view_context(
+    builder_context.clone(),
+    ColorF::new(1.0, 1.0, 1.0, 1.0),
+    (10.0, 10.0), (600.0, 600.0)
   );
 
-  let mut complex_clip = ComplexClipRegion {
-    radii: BorderRadius::uniform(3.0),
-    mode: ClipMode::Clip,
-    rect: bounds,
-  };
-
-  let mut container = LayoutPrimitiveInfo {
-    local_clip: LocalClip::RoundedRect(bounds, complex_clip),
-    .. LayoutPrimitiveInfo::new(bounds)
-  };
-
-  builder_context.builder.push_stacking_context(
-    &container,
-    ScrollPolicy::Scrollable,
-    None,
-    TransformStyle::Flat,
-    None,
-    MixBlendMode::Normal,
-    vec![],
+  // Child(by: root)(id: 0)
+  draw_view_context(
+    builder_context.clone(),
+    ColorF::new(0.13, 0.59, 0.95, 1.0),
+    (10.0, 10.0), (100.0, 100.0)
   );
 
-  builder_context.builder.push_rect(&container, ColorF::new(1.0, 1.0, 1.0, 1.0));
-  builder_context.builder.pop_stacking_context();
+    // Child(by: Child(by: root)(id: 0))(id: 0)
+    draw_view_context(
+      builder_context.clone(),
+      ColorF::new(1.0, 0.34, 0.13, 1.0),
+      (10.0, 10.0), (30.0, 30.0)
+    );
 
+    // Back current context to : Child(by: root)(id: 0) from current context
+    builder_context.borrow_mut().builder.pop_stacking_context();
+
+    // Child(by: Child(by: root)(id: 0))(id: 1)
+    draw_view_context(
+      builder_context.clone(),
+      ColorF::new(0.0, 0.0, 0.0, 1.0),
+      (35.0, 10.0), (30.0, 30.0)
+    );
+
+    // Back current context to : Child(by: root)(id: 0) from current context
+    builder_context.borrow_mut().builder.pop_stacking_context();
+
+  // Back current context to : Roots(Child)from current context
+  builder_context.borrow_mut().builder.pop_stacking_context();
+
+  // Roots(Child)
+  draw_view_context(
+    builder_context.clone(),
+    ColorF::new(0.13, 0.12, 0.39, 1.0),
+    (100.0, 10.0), (100.0, 100.0)
+  );
+
+  // Apply builder list to view on screen
   println!("\n Trace Webrender Nodes\n");
-  builder_context.builder.print_display_list();
+  builder_context.borrow_mut().builder.print_display_list();
 
   webrender_context.borrow_mut().set_display_list(
-    builder_context.builder,
-    builder_context.resources,
+    builder_context.borrow().builder.clone(),
+    builder_context.borrow().resources.clone(),
     window.borrow().size_dp()
   );
 

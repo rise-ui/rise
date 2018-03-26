@@ -42,6 +42,7 @@ impl Layout {
 
     for child in childs.iter() {
       Layout::draw(&child, builder_context.clone());
+      builder_context.borrow_mut().builder.pop_stacking_context();
     }
   }
 }

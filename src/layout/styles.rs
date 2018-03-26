@@ -13,12 +13,40 @@ use std::rc::Rc;
 use webrender::api::*;
 use palette;
 
-fn token_rgb_to_webrender_color(color: Color) -> ColorF {
+pub fn token_rgb_to_webrender_color(color: Color) -> ColorF {
   use palette::rgb::{ Rgb, Srgb };
   use palette::Alpha;
 
   let rgb = Alpha::<Rgb, _>::new_u8(color.red, color.green, color.blue, color.alpha);
   return ColorF::new(rgb.red, rgb.green, rgb.blue, rgb.alpha);
+}
+
+pub enum ClipStyleType {
+  Background,
+  Container
+}
+
+// Arguments: point: (left, top), size: (width, height)
+pub fn generate_clip_primitive(border_radius: f32, point: (f32, f32), size: (f32, f32), clip_style_type: ClipStyleType) -> PrimitiveInfo<LayerPixel> {
+  let point_started = match clip_style_type {
+    ClipStyleType::Container => LayoutPoint::new(point.0, point.1),
+    ClipStyleType::Background => LayoutPoint::new(0.0, 0.0)
+  };
+
+  let bounds = LayoutRect::new(point_started, LayoutSize::new(size.0, size.1));
+
+  let complex_clip = ComplexClipRegion {
+    radii: BorderRadius::uniform(border_radius),
+    mode: ClipMode::Clip,
+    rect: bounds,
+  };
+
+  let mut clip = LayoutPrimitiveInfo {
+    local_clip: LocalClip::RoundedRect(bounds, complex_clip),
+    .. LayoutPrimitiveInfo::new(bounds)
+  };
+
+  return clip;
 }
 
 #[derive(Debug, Clone)]
@@ -71,31 +99,20 @@ impl Style {
     let layout = node.borrow().get_layout();
 
     // Drawing
-    let bounds = LayoutRect::new(
-      LayoutPoint::new(layout.left(), layout.top()),
-      LayoutSize::new(layout.width(), layout.height()),
+    let container_clip = generate_clip_primitive(
+      10.0, (layout.left(), layout.top()), (layout.width(), layout.height()),
+      ClipStyleType::Container
     );
 
-    let mut complex_clip = ComplexClipRegion {
-      radii: BorderRadius::uniform(10.0),
-      mode: ClipMode::Clip,
-      rect: bounds,
-    };
-
-    let mut container = LayoutPrimitiveInfo {
-      local_clip: LocalClip::RoundedRect(bounds, complex_clip),
-      .. LayoutPrimitiveInfo::new(bounds)
-    };
-
-//    builder_context.borrow_mut().builder.push_stacking_context(
-//      &container,
-//      ScrollPolicy::Scrollable,
-//      None,
-//      TransformStyle::Flat,
-//      None,
-//      MixBlendMode::Normal,
-//      vec![],
-//    );
+    builder_context.borrow_mut().builder.push_stacking_context(
+      &container_clip,
+      ScrollPolicy::Scrollable,
+      None,
+      TransformStyle::Flat,
+      None,
+      MixBlendMode::Normal,
+      vec![],
+    );
 
     // let details = BorderDetails::Normal(border_details)
 
@@ -103,9 +120,12 @@ impl Style {
       match style {
         &ThemeStyle::BackgroundColor(color) => {
           let prepared_color = token_rgb_to_webrender_color(color.clone());
-          //println!("BackgroundColor: {:?} %%%% {:?}", color, prepared_color);
+          let background_clip = generate_clip_primitive(
+            10.0, (layout.left(), layout.top()), (layout.width(), layout.height()),
+            ClipStyleType::Background
+          );
 
-          builder_context.borrow_mut().builder.push_rect(&container, prepared_color);
+          builder_context.borrow_mut().builder.push_rect(&background_clip, prepared_color);
         },
         _ => {}
       }
