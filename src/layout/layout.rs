@@ -19,7 +19,7 @@ impl Layout {
   }
 
   pub fn calculate(&mut self, window_size: (f32, f32)) {
-    use rsx_primitives::rsx_stylesheet::yoga;
+    use rsx_stylesheet::yoga;
 
     let root_style = self.root.style.clone();
     let root_node = root_style.borrow_mut().node.clone();

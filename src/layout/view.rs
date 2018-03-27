@@ -1,4 +1,4 @@
-use rsx_primitives::rsx_stylesheet::types::StyleDeclarations;
+use rsx_stylesheet::types::StyleDeclarations;
 use layout::styles::Style;
 
 use std::cell::RefCell;

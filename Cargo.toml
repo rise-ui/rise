@@ -3,16 +3,16 @@ name = "quick-tk"
 version = "0.1.0"
 authors = ["Anton Shramko <antonshramko@yandex.ru>"]
 
+[workspace]
+
 [dependencies]
 env_logger = "0.4"
 gleam = "0.4.20"
 euclid = "0.16"
 log = "0.3"
 
-rsx-stylesheet = { git = "https://github.com/victorporof/rsx-stylesheet.git", features = ["css-parse"] }
-rsx-primitives = { git = "https://github.com/victorporof/rsx-primitives.git" }
-rsx = { git = "https://github.com/victorporof/rsx.git" }
-
+rsx-shared = { git = "https://github.com/victorporof/rsx-shared.git", default-features = false, features = ["impl-external-yoga"] }
+rsx-stylesheet = { path = "../rsx-stylesheet", features = ["css-parse"] }
 webrender = { git = "https://github.com/servo/webrender" }
 ordered-float = "0.5.0"
 palette = "0.3"
