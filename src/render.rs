@@ -38,7 +38,7 @@ impl WebRenderContext {
     println!("HiDPI factor {}", window.hidpi_factor());
 
     let opts = webrender::RendererOptions {
-      clear_color: Some(ColorF::new(0.0, 0.0, 0.0, 0.8)),
+      clear_color: Some(ColorF::new(0.0, 0.0, 0.0, 0.02)),
       device_pixel_ratio: window.hidpi_factor(),
       resource_override_path: None,
       enable_subpixel_aa: true,

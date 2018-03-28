@@ -135,41 +135,43 @@ fn main() {
     ],
   );
 
-
   fn get_sidebar_list() -> Vec<View> {
     let mut list = vec![];
 
     for _ in 0..5 {
-      list.push(View::new(style! {
-        flex-direction: { row };
-        align-items: { center };
-        margin-top: { 10 px };
-        width: { 100 % };
-      }, vec![
-        View::new(
-          add_border_radius_to_all(
-            style! {
-              background-color: { rgba(0,0,0, 0.1) };
-              margin-right: { 10 px };
-              width: { 30 px };
-              height: { 30 px };
-            },
-            30.0,
+      list.push(View::new(
+        style! {
+          flex-direction: { row };
+          align-items: { center };
+          margin-top: { 10 px };
+          width: { 100 % };
+        },
+        vec![
+          View::new(
+            add_border_radius_to_all(
+              style! {
+                background-color: { rgba(0,0,0, 0.1) };
+                margin-right: { 10 px };
+                width: { 30 px };
+                height: { 30 px };
+              },
+              30.0,
+            ),
+            vec![],
           ),
-          vec![],
-        ),
-        View::new(
-          add_border_radius_to_all(
-            style! {
-              background-color: { rgba(0,0,0, 0.1) };
-              height: { 20 px };
-              flex: { 1 };
-            },
-            4.0,
+          View::new(
+            add_border_radius_to_all(
+              style! {
+                background-color: { rgba(0,0,0, 0.1) };
+                height: { 20 px };
+                flex: { 1 };
+              },
+              4.0,
+            ),
+            vec![],
           ),
-          vec![],
-        ),
-      ]));
+        ],
+      ));
     }
 
     return list;
@@ -225,18 +227,18 @@ fn main() {
           ),
         ],
       ),
-
       // List view
       View::new(
         style!{
           flex-direction: { column };
-          
+
           padding-right: { 10 px };
           padding-left: { 10 px };
           margin-top: { 15 px };
           width: { 100 % };
-        }, get_sidebar_list()
-      )
+        },
+        get_sidebar_list(),
+      ),
     ],
   );
 
@@ -282,13 +284,14 @@ fn main() {
       View::new(
         style!{
           flex-direction: { column };
-          
+
           padding-right: { 25 px };
           padding-left: { 25 px };
           margin-top: { 45 px };
           width: { 100 % };
-        }, get_sidebar_list()
-      )
+        },
+        get_sidebar_list(),
+      ),
     ],
   );
 
@@ -296,6 +299,10 @@ fn main() {
     add_border_radius_to_all(
       style!{
         background-color: { rgb(255, 255, 255) };
+        margin-top   : { 0 px };
+        margin-left  : { 0 px };
+        margin-bottom: { 0 px };
+        margin-right : { 0 px };
         flex-direction: { row };
       },
       15.0,
