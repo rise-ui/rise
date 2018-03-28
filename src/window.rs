@@ -1,13 +1,13 @@
+use euclid;
+use geometry::Size;
 use gleam::gl;
 use glutin;
 use glutin::GlContext;
 use webrender::api::DeviceUintSize;
-use geometry::Size;
-use euclid;
 
 /// A simple wrapper around a `glutin::GlWindow`.
 pub struct Window {
-  pub window: glutin::GlWindow
+  pub window: glutin::GlWindow,
 }
 impl Window {
   pub fn new(window_builder: glutin::WindowBuilder, events_loop: &glutin::EventsLoop) -> Self {
@@ -21,14 +21,16 @@ impl Window {
 
     let window = glutin::GlWindow::new(window_builder, context, events_loop).unwrap();
     unsafe { window.make_current().ok() };
-    Window {
-      window: window
-    }
+    Window { window: window }
   }
   pub fn gl(&self) -> ::std::rc::Rc<gl::Gl> {
     match gl::GlType::default() {
-      gl::GlType::Gl => unsafe { gl::GlFns::load_with(|symbol| self.window.get_proc_address(symbol) as *const _) },
-      gl::GlType::Gles => unsafe { gl::GlesFns::load_with(|symbol| self.window.get_proc_address(symbol) as *const _) },
+      gl::GlType::Gl => unsafe {
+        gl::GlFns::load_with(|symbol| self.window.get_proc_address(symbol) as *const _)
+      },
+      gl::GlType::Gles => unsafe {
+        gl::GlesFns::load_with(|symbol| self.window.get_proc_address(symbol) as *const _)
+      },
     }
   }
   pub fn swap_buffers(&self) {
@@ -48,7 +50,7 @@ impl Window {
 
   pub fn size(&self) -> (f32, f32) {
     let (width, height) = self.window.get_inner_size().unwrap();
-    return (width as f32, height as f32)
+    return (width as f32, height as f32);
   }
 
   pub fn size_dp(&self) -> Size {

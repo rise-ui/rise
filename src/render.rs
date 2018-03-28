@@ -6,9 +6,9 @@ use glutin;
 use webrender;
 use webrender::api::*;
 
-use window::Window;
 use euclid::TypedPoint2D;
-use geometry::{Rect, Point, Size};
+use geometry::{Point, Rect, Size};
+use window::Window;
 
 // Provides access to the WebRender context and API
 pub struct WebRenderContext {
@@ -44,11 +44,14 @@ impl WebRenderContext {
       enable_subpixel_aa: true,
       precache_shaders: false,
       debug: true,
-      .. webrender::RendererOptions::default()
+      ..webrender::RendererOptions::default()
     };
 
     let frame_ready = Arc::new(AtomicBool::new(false));
-    let notifier = Box::new(Notifier::new(events_loop.create_proxy(), Arc::clone(&frame_ready)));
+    let notifier = Box::new(Notifier::new(
+      events_loop.create_proxy(),
+      Arc::clone(&frame_ready),
+    ));
 
     let (mut renderer, sender) = webrender::Renderer::new(gl, notifier, opts).unwrap();
     let api = sender.create_api();
@@ -87,15 +90,14 @@ impl WebRenderContext {
     }
   }
 
-  pub fn set_display_list(&mut self, builder: DisplayListBuilder, resources: ResourceUpdates, window_size: LayoutSize) {
+  pub fn set_display_list(
+    &mut self,
+    builder: DisplayListBuilder,
+    resources: ResourceUpdates,
+    window_size: LayoutSize,
+  ) {
     let mut txn = Transaction::new();
-    txn.set_display_list(
-      self.epoch,
-      None,
-      window_size,
-      builder.finalize(),
-      true,
-    );
+    txn.set_display_list(self.epoch, None, window_size, builder.finalize(), true);
 
     txn.update_resources(resources);
     txn.generate_frame();
@@ -129,7 +131,12 @@ impl WebRenderContext {
 
   pub fn window_resized(&mut self, size: DeviceUintSize) {
     let window_rect = DeviceUintRect::new(TypedPoint2D::zero(), size);
-    self.render_api.set_window_parameters(self.document_id, size, window_rect, self.device_pixel_ratio);
+    self.render_api.set_window_parameters(
+      self.document_id,
+      size,
+      window_rect,
+      self.device_pixel_ratio,
+    );
   }
 }
 
@@ -149,7 +156,7 @@ impl Notifier {
 impl RenderNotifier for Notifier {
   fn wake_up(&self) {
     #[cfg(not(target_os = "android"))]
-      self.events_proxy.wakeup().ok();
+    self.events_proxy.wakeup().ok();
     self.frame_ready.store(true, atomic::Ordering::Release);
   }
 
@@ -158,6 +165,9 @@ impl RenderNotifier for Notifier {
   }
 
   fn clone(&self) -> Box<RenderNotifier + 'static> {
-    Box::new(Notifier::new(self.events_proxy.clone(), self.frame_ready.clone()))
+    Box::new(Notifier::new(
+      self.events_proxy.clone(),
+      self.frame_ready.clone(),
+    ))
   }
 }

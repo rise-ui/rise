@@ -1,5 +1,5 @@
-use rsx_stylesheet::types::StyleDeclarations;
 use layout::styles::Style;
+use rsx_stylesheet::types::StyleDeclarations;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -7,7 +7,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 pub struct View {
   pub childs: Vec<View>,
-  pub style: Rc<RefCell<Style>>
+  pub style: Rc<RefCell<Style>>,
 }
 
 impl View {
@@ -16,10 +16,7 @@ impl View {
     let style = Rc::new(RefCell::new(style));
     View::prepare(style.clone(), &childs);
 
-    View {
-      childs,
-      style
-    }
+    View { childs, style }
   }
 
   fn prepare(parent_style: Rc<RefCell<Style>>, childs: &Vec<View>) {
@@ -30,7 +27,9 @@ impl View {
       let parent_style_node = parent_style.borrow_mut().node.clone();
       let child_node = child.style.borrow_mut().node.clone();
 
-      parent_style_node.borrow_mut().insert_child(&mut *child_node.borrow_mut(), index);
+      parent_style_node
+        .borrow_mut()
+        .insert_child(&mut *child_node.borrow_mut(), index);
     }
   }
 }
