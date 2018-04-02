@@ -1,113 +1,148 @@
-use gleam::gl;
-use glutin::{self, EventsLoop, GlContext, WindowBuilder};
-use webrender::api::*;
-
+use glutin::{self, Event, EventsLoop, WindowBuilder};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-// Layout
-use layout::experiments::draw_raw_experiment;
-use layout::layout::{trace_nodes, Layout};
-use layout::styles::Style;
-use layout::view::View;
+use std::time::{Duration, Instant};
 
 // Core contexts
-use render::{RenderBuilder, WebRenderContext};
+use layout::layout::Layout;
+use render::WebRenderContext;
+use ui::Ui;
 use window::Window;
 
+pub enum WindowPosition {
+  MiddleRight,
+  MiddleLeft,
+  Center,
+}
+
+pub struct WindowOptions {
+  pub position: WindowPosition,
+  pub window_size: (u32, u32),
+  pub title: String,
+}
+
+impl WindowOptions {
+  pub fn get_window_position(&self, monitor: glutin::MonitorId) -> (i32, i32) {
+    let mut position: (i32, i32) = (0, 0);
+
+    let hidpi = monitor.get_hidpi_factor();
+    let window_size = &self.window_size;
+
+    let monitor_size = monitor.get_dimensions();
+    let monitor_size = (monitor_size.0 as f32 / hidpi, monitor_size.1 as f32 / hidpi);
+
+    match &self.position {
+      &WindowPosition::MiddleLeft => {
+        position = (0, ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32)
+      }
+      &WindowPosition::MiddleRight => {
+        position = (
+          (monitor_size.1 - window_size.1 as f32) as i32,
+          ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32,
+        )
+      }
+      &WindowPosition::Center => {
+        position = (
+          ((monitor_size.0 - window_size.0 as f32) / 2.0) as i32,
+          ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32,
+        )
+      }
+    }
+
+    return position;
+  }
+}
+
+impl Default for WindowOptions {
+  fn default() -> WindowOptions {
+    WindowOptions {
+      position: WindowPosition::Center,
+      window_size: (600, 400),
+      title: String::from(""),
+    }
+  }
+}
+
 pub struct App {
-  webrender_context: Rc<RefCell<WebRenderContext>>,
   event_loop: Rc<RefCell<EventsLoop>>,
-  window: Rc<RefCell<Window>>,
-  layout: Rc<RefCell<Layout>>,
+  window_initialized: bool,
+  frame_time: Instant,
+  ui: Ui,
 }
 
 impl App {
-  pub fn new(title: &str, layout: Layout) -> App {
-    let event_loop = EventsLoop::new();
+  pub fn new(options: WindowOptions, layout: Layout) -> App {
     let window_builder = WindowBuilder::new()
-      .with_title(title)
-      .with_multitouch()
+      .with_dimensions(options.window_size.0, options.window_size.1)
+      .with_title(&*options.title)
       .with_decorations(false)
       .with_transparency(true)
-      .with_dimensions(1000, 700);
+      .with_multitouch();
 
+    let event_loop = EventsLoop::new();
     let mut window = Window::new(window_builder, &event_loop);
+
+    let position = options.get_window_position(event_loop.get_primary_monitor());
+    window.window.set_position(position.0, position.1);
+
     let webrender_context = WebRenderContext::new(&mut window, &event_loop);
+    let event_loop = Rc::new(RefCell::new(event_loop));
+    let ui = Ui::new(event_loop.clone(), webrender_context, window, layout);
 
     App {
-      webrender_context: Rc::new(RefCell::new(webrender_context)),
-      event_loop: Rc::new(RefCell::new(event_loop)),
-      window: Rc::new(RefCell::new(window)),
-      layout: Rc::new(RefCell::new(layout)),
+      window_initialized: false,
+      frame_time: Instant::now(),
+      event_loop,
+      ui,
     }
   }
 
-  pub fn run(&self) {
-    let webrender_context = self.webrender_context.clone();
-    let window = self.window.clone();
-    let layout = self.layout.clone();
+  fn tick_frame_time(&mut self, log: bool) {
+    use std::io::{self, Write};
 
-    self
-      .event_loop
-      .borrow_mut()
-      .run_forever(move |global_event| {
-        let mut transaction = Transaction::new();
+    let elapsed_time = self.frame_time.elapsed();
+    let elapsed_ms =
+      (elapsed_time.as_secs() * 1_000) + (elapsed_time.subsec_nanos() / 1_000_000) as u64;
 
-        match global_event {
-          glutin::Event::WindowEvent { event, .. } => match event {
-            // TODO: bug - glutin not return close event
-            glutin::WindowEvent::Closed => {
-              return glutin::ControlFlow::Break;
-            }
+    if log {
+      let text = format!("\rframe time: {:?}ms", elapsed_ms);
+      let stdout = io::stdout();
+      let mut handle = stdout.lock();
 
-            glutin::WindowEvent::Resized(w, h) => {
-              let size = DeviceUintSize::new(w, h);
-              webrender_context.borrow_mut().window_resized(size);
-            }
+      if let Ok(_) = handle.write(text.as_bytes()) {}
+    }
 
-            _ => (),
-          },
+    self.frame_time = Instant::now();
+  }
 
-          _ => (),
-        }
+  pub fn run(mut self) {
+    let event_loop = Rc::clone(&self.event_loop);
+    let mut event_loop = event_loop.borrow_mut();
 
-        let builder_context = webrender_context
-          .borrow_mut()
-          .render_builder(window.borrow().size_dp());
-        let builder_context = Rc::new(RefCell::new(builder_context));
+    self.window_initialized = true;
 
-        //      draw_raw_experiment(
-        //        builder_context.clone(),
-        //        webrender_context.clone(),
-        //        window.clone()
-        //      );
+    loop {
+      if !self.ui.needs_redraw() {
+        event_loop.run_forever(|event| {
+          self.handle_window_event(event);
+          glutin::ControlFlow::Break
+        });
+      }
 
-        // Render blocks
-        self.layout.borrow_mut().calculate(window.borrow().size());
-
-        self.layout.borrow_mut().render(builder_context.clone());
-        builder_context.borrow_mut().builder.pop_stacking_context();
-
-        //      println!("\nNodes\n");
-        //      trace_nodes(&self.layout.borrow_mut().root, 0);
-        //      builder_context.borrow_mut().builder.print_display_list();
-
-        webrender_context.borrow_mut().set_display_list(
-          builder_context.borrow().builder.clone(),
-          builder_context.borrow().resources.clone(),
-          window.borrow().size_dp(),
-        );
-
-        webrender_context
-          .borrow_mut()
-          .update(window.borrow().size_px());
-        window.borrow_mut().swap_buffers();
-
-        glutin::ControlFlow::Continue
+      event_loop.poll_events(|event| {
+        self.handle_window_event(event);
       });
 
-    //    @TODO Fix `move out of borrowed content`
-    //    webrender_context.borrow_mut().deinit();
+      if self.ui.should_close() {
+        self.ui.close_app();
+        return;
+      }
+
+      self.tick_frame_time(true);
+      self.ui.update();
+    }
   }
+
+  fn handle_window_event(&mut self, event: Event) {}
 }

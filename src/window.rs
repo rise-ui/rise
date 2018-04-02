@@ -5,7 +5,6 @@ use glutin;
 use glutin::GlContext;
 use webrender::api::DeviceUintSize;
 
-/// A simple wrapper around a `glutin::GlWindow`.
 pub struct Window {
   pub window: glutin::GlWindow,
 }

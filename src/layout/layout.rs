@@ -1,4 +1,4 @@
-use layout::styles::Style;
+use layout::style::prelude::Style;
 use layout::view::View;
 use render::RenderBuilder;
 use webrender::webrender_api::*;
@@ -6,7 +6,6 @@ use webrender::webrender_api::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
 pub struct Layout {
   pub root: View,
 }
@@ -20,7 +19,7 @@ impl Layout {
     use rsx_stylesheet::yoga;
 
     let root_style = self.root.style.clone();
-    let root_node = root_style.borrow_mut().node.clone();
+    let root_node = root_style.borrow_mut().get_node();
 
     root_node
       .borrow_mut()
@@ -46,7 +45,7 @@ impl Layout {
 
 pub fn trace_nodes(root: &View, offset: usize) {
   let root_style = root.style.clone();
-  let root_node = root_style.borrow_mut().node.clone();
+  let root_node = root_style.borrow_mut().get_node();
 
   let layout = root_node.borrow_mut().get_layout();
   let mut offset_string = String::new();

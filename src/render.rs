@@ -8,9 +8,9 @@ use webrender::api::*;
 
 use euclid::TypedPoint2D;
 use geometry::{Point, Rect, Size};
+use resources;
 use window::Window;
 
-// Provides access to the WebRender context and API
 pub struct WebRenderContext {
   pub renderer: webrender::Renderer,
   pub render_api: RenderApi,
@@ -19,13 +19,9 @@ pub struct WebRenderContext {
   pub document_id: DocumentId,
   pub device_pixel_ratio: f32,
   pub root_background_color: ColorF,
-  // store frame ready event in case it is received after
-  // update but before the event queue is waiting, otherwise
-  // the event queue can go idle while there is a frame ready
   pub frame_ready: Arc<AtomicBool>,
 }
 
-// Context needed for widgets to draw or update resources in a particular frame
 pub struct RenderBuilder {
   pub builder: DisplayListBuilder,
   pub resources: ResourceUpdates,
@@ -38,12 +34,12 @@ impl WebRenderContext {
     println!("HiDPI factor {}", window.hidpi_factor());
 
     let opts = webrender::RendererOptions {
-      clear_color: Some(ColorF::new(0.0, 0.0, 0.0, 0.02)),
+      clear_color: Some(ColorF::new(0.0, 0.0, 0.0, 0.01)),
       device_pixel_ratio: window.hidpi_factor(),
       resource_override_path: None,
       enable_subpixel_aa: true,
       precache_shaders: false,
-      debug: true,
+      debug: false,
       ..webrender::RendererOptions::default()
     };
 
@@ -55,8 +51,10 @@ impl WebRenderContext {
 
     let (mut renderer, sender) = webrender::Renderer::new(gl, notifier, opts).unwrap();
     let api = sender.create_api();
-    let mut resources = ResourceUpdates::new();
+    resources::init_resources(sender);
     let document_id = api.add_document(window.size_px(), 0);
+
+    renderer.set_external_image_handler(Box::new(QuickExternalImageHandler));
 
     let epoch = Epoch(0);
     let root_background_color = ColorF::new(0.0, 0.0, 0.0, 0.0);
@@ -170,4 +168,26 @@ impl RenderNotifier for Notifier {
       self.frame_ready.clone(),
     ))
   }
+}
+
+struct QuickExternalImageHandler;
+
+impl webrender::ExternalImageHandler for QuickExternalImageHandler {
+  // Do not perform any actual locking since rendering happens on the main thread
+  fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> webrender::ExternalImage {
+    let descriptor = resources::resources().image_loader.texture_descriptors[&key.0];
+
+    webrender::ExternalImage {
+      uv: TexelRect {
+        uv0: TypedPoint2D::zero(),
+        uv1: TypedPoint2D::<f32, DevicePixel>::new(
+          descriptor.width as f32,
+          descriptor.height as f32,
+        ),
+      },
+      source: webrender::ExternalImageSource::NativeTexture(key.0 as _),
+    }
+  }
+
+  fn unlock(&mut self, _key: ExternalImageId, _channel_index: u8) {}
 }

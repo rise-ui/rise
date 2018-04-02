@@ -12,10 +12,12 @@ euclid = "0.16"
 log = "0.3"
 
 rsx-shared = { git = "https://github.com/victorporof/rsx-shared.git", default-features = false, features = ["impl-external-yoga"] }
-rsx-stylesheet = { path = "../rsx-stylesheet", features = ["css-parse"] }
 webrender = { git = "https://github.com/servo/webrender" }
+rsx-stylesheet = { path = "../rsx-stylesheet" }
+limn-text_layout = { path = "./text_layout" }
 ordered-float = "0.5.0"
 palette = "0.3"
+rand = "0.4.2"
 
 stb_truetype = "0.2.1"
 app_units = "0.6"

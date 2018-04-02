@@ -1,19 +1,18 @@
-use layout::styles::Style;
+use layout::style::prelude::{DrawerStyle, Style};
 use rsx_stylesheet::types::StyleDeclarations;
 
+use std::boxed::Box;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
 pub struct View {
   pub childs: Vec<View>,
-  pub style: Rc<RefCell<Style>>,
+  pub style: Rc<RefCell<DrawerStyle>>,
 }
 
 impl View {
   pub fn new(style: StyleDeclarations, childs: Vec<View>) -> View {
-    let style = Style::new(style);
-    let style = Rc::new(RefCell::new(style));
+    let style = Rc::new(RefCell::new(Style::new(style)));
     View::prepare(style.clone(), &childs);
 
     View { childs, style }
@@ -24,8 +23,8 @@ impl View {
       let child = child.clone();
       let index = index as u32;
 
-      let parent_style_node = parent_style.borrow_mut().node.clone();
-      let child_node = child.style.borrow_mut().node.clone();
+      let parent_style_node = parent_style.borrow_mut().get_node();
+      let child_node = child.style.borrow_mut().get_node();
 
       parent_style_node
         .borrow_mut()

@@ -10,7 +10,7 @@ use rsx_stylesheet::types::Stylesheet;
 use rsx_stylesheet::types::*;
 use rsx_stylesheet::*;
 
-use quick_tk::{App, Layout, View};
+use quick_tk::{App, Layout, View, WindowOptions, WindowPosition};
 
 // HardFix, current `style!` macros are not support global `border-radius` property, bot support radius by corner
 fn add_border_radius_to_all(mut style: StyleDeclarations, border_radius: f32) -> StyleDeclarations {
@@ -310,6 +310,13 @@ fn main() {
     vec![sidebar_view, sidebar_menu, content_view],
   ));
 
-  let app = App::new("Example App", layout);
+  let app = App::new(
+    WindowOptions {
+      title: String::from("Example App"),
+      position: WindowPosition::Center,
+      window_size: (1000, 700),
+    },
+    layout,
+  );
   app.run();
 }
