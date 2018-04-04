@@ -68,7 +68,6 @@ impl Ui {
     // Render blocks
     self.layout.borrow_mut().calculate(window.borrow().size());
     self.layout.borrow_mut().render(builder_context.clone());
-
     builder_context.borrow_mut().builder.pop_stacking_context();
 
     render.borrow_mut().set_display_list(

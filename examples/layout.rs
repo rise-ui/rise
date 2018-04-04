@@ -5,45 +5,14 @@ extern crate ordered_float;
 extern crate quick_tk;
 extern crate rsx_stylesheet;
 
+mod common;
+
 use ordered_float::OrderedFloat;
 use rsx_stylesheet::types::Stylesheet;
 use rsx_stylesheet::types::*;
 use rsx_stylesheet::*;
 
 use quick_tk::{App, Layout, View, WindowOptions, WindowPosition};
-
-// HardFix, current `style!` macros are not support global `border-radius` property, bot support radius by corner
-fn add_border_radius_to_all(mut style: StyleDeclarations, border_radius: f32) -> StyleDeclarations {
-  style.push(StyleDeclaration::Theme(ThemeStyle::BorderTopLeftRadius(
-    StyleUnit::Point(OrderedFloat(border_radius)),
-  )));
-  style.push(StyleDeclaration::Theme(ThemeStyle::BorderTopRightRadius(
-    StyleUnit::Point(OrderedFloat(border_radius)),
-  )));
-  style.push(StyleDeclaration::Theme(
-    ThemeStyle::BorderBottomRightRadius(StyleUnit::Point(OrderedFloat(border_radius))),
-  ));
-  style.push(StyleDeclaration::Theme(ThemeStyle::BorderBottomLeftRadius(
-    StyleUnit::Point(OrderedFloat(border_radius)),
-  )));
-
-  return style;
-}
-
-// HardFix, current style! macros are not support border-* properties and throw on compile
-fn add_border_to_all(mut style: StyleDeclarations, width: f32, color: Color) -> StyleDeclarations {
-  style.push(StyleDeclaration::Layout(FlexStyle::BorderTop(
-    OrderedFloat(width),
-  )));
-
-  style.push(StyleDeclaration::Theme(ThemeStyle::BorderTopColor(color)));
-
-  style.push(StyleDeclaration::Theme(ThemeStyle::BorderTopStyle(
-    BorderStyle::Solid,
-  )));
-
-  return style;
-}
 
 fn main() {
   let sidebar_view = View::new(
@@ -69,7 +38,7 @@ fn main() {
         },
         vec![
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(255, 255, 255, 0.75) };
                 height: { 50 px }; width: { 50 px };
@@ -79,7 +48,7 @@ fn main() {
             vec![],
           ),
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(255, 255, 255, 0.5) };
                 height: { 40 px }; width: { 40 px };
@@ -90,7 +59,7 @@ fn main() {
             vec![],
           ),
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(255, 255, 255, 0.5) };
                 height: { 40 px }; width: { 40 px };
@@ -110,7 +79,7 @@ fn main() {
         },
         vec![
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(255, 255, 255, 0.5) };
                 height: { 30 px }; width: { 30 px };
@@ -120,7 +89,7 @@ fn main() {
             vec![],
           ),
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(255, 255, 255, 0.5) };
                 height: { 30 px }; width: { 30 px };
@@ -148,7 +117,7 @@ fn main() {
         },
         vec![
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(0,0,0, 0.1) };
                 margin-right: { 10 px };
@@ -160,7 +129,7 @@ fn main() {
             vec![],
           ),
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(0,0,0, 0.1) };
                 height: { 20 px };
@@ -203,7 +172,7 @@ fn main() {
         },
         vec![
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(0,0,0, 0.1) };
                 margin-right: { 10 px };
@@ -215,7 +184,7 @@ fn main() {
             vec![],
           ),
           View::new(
-            add_border_radius_to_all(
+            common::add_border_radius_to_all(
               style! {
                 background-color: { rgba(0,0,0, 0.1) };
                 height: { 25 px };
@@ -257,7 +226,7 @@ fn main() {
     },
     vec![
       View::new(
-        add_border_radius_to_all(
+        common::add_border_radius_to_all(
           style! {
             background-color: { rgba(0,0,0, 0.1) };
             width: { 300 px };
@@ -268,7 +237,7 @@ fn main() {
         vec![],
       ),
       View::new(
-        add_border_radius_to_all(
+        common::add_border_radius_to_all(
           style! {
             background-color: { rgba(0,0,0, 0.1) };
             width: { 180 px };
@@ -296,7 +265,7 @@ fn main() {
   );
 
   let layout = Layout::new(View::new(
-    add_border_radius_to_all(
+    common::add_border_radius_to_all(
       style!{
         background-color: { rgb(255, 255, 255) };
         margin-top   : { 0 px };

@@ -15,6 +15,8 @@ use layout::style::prelude::{create_node_with_layout_styles, generate_borders,
 
 use layout::style::prelude::DrawerStyle;
 
+pub type RefCellDrawerStyle = Rc<RefCell<DrawerStyle>>;
+
 #[derive(Debug, Clone)]
 pub struct Style {
   declarations: StyleDeclarations,
@@ -101,5 +103,7 @@ impl DrawerStyle for Style {
       .borrow_mut()
       .builder
       .push_border(&background_clip, border.0, border.1);
+
+    // builder_context.borrow_mut().builder.pop_stacking_context();
   }
 }

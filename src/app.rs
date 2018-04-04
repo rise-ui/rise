@@ -139,7 +139,7 @@ impl App {
         return;
       }
 
-      self.tick_frame_time(true);
+      self.tick_frame_time(false);
       self.ui.update();
     }
   }
