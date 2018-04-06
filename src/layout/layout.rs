@@ -1,7 +1,5 @@
-use layout::style::prelude::Style;
 use layout::view::{DrawerView, View};
 use render::RenderBuilder;
-use webrender::webrender_api::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;

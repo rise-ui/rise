@@ -13,6 +13,8 @@ log = "0.3"
 
 rsx-shared = { git = "https://github.com/victorporof/rsx-shared.git", default-features = false, features = ["impl-external-yoga"] }
 webrender = { git = "https://github.com/servo/webrender" }
+
+# Its fork from https://github.com/friktor/rsx-stylesheet
 rsx-stylesheet = { path = "../rsx-stylesheet" }
 limn-text_layout = { path = "./text_layout" }
 ordered-float = "0.5.0"

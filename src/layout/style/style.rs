@@ -13,7 +13,11 @@ use layout::style::prelude::{create_node_with_layout_styles, generate_borders,
                              generate_clip_primitive, generate_corner_radius,
                              token_rgb_to_webrender_color, ClipStyleType};
 
-use layout::style::prelude::DrawerStyle;
+pub trait DrawerStyle {
+  fn draw(&mut self, builder_context: Rc<RefCell<RenderBuilder>>);
+  fn get_styles(&self) -> StyleDeclarations;
+  fn get_node(&self) -> Rc<RefCell<Node>>;
+}
 
 pub type RefCellDrawerStyle = Rc<RefCell<DrawerStyle>>;
 
