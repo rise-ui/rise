@@ -2,7 +2,7 @@
   <img width="100" height="100" src="logo.png">
 </p>
 
-## QuickTk
+## Rise
 *Current in Trash-stage*
 
 ### Description

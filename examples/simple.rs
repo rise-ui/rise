@@ -2,7 +2,7 @@
 #![feature(proc_macro)]
 
 extern crate ordered_float;
-extern crate quick_tk;
+extern crate rise;
 extern crate rsx_stylesheet;
 
 mod common;
@@ -12,7 +12,7 @@ use rsx_stylesheet::types::Stylesheet;
 use rsx_stylesheet::types::*;
 use rsx_stylesheet::*;
 
-use quick_tk::{App, Layout, View, WindowOptions, WindowPosition};
+use rise::{App, Layout, View, WindowOptions, WindowPosition};
 
 fn main() {
   let layout = Layout::new(View::new(
