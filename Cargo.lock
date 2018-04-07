@@ -1410,8 +1410,10 @@ dependencies = [
  "self-tokenize-trait 0.1.0 (git+https://github.com/victorporof/rust-self-tokenize.git)",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-css-parser 0.1.0 (git+https://github.com/victorporof/servo-css-parser.git)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "yoga 0.2.0 (git+https://github.com/victorporof/yoga-rs.git?branch=self-tokenize)",
 ]
 
