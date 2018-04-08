@@ -3,20 +3,17 @@
 </p>
 
 ## Rise
-*Currently in the Trash-stage*
+*Taking baby steps to reach greatness*
 
 ### Description
-The main goal of the project is to create a simple component-based GUI Toolkit for developing beautiful and user-friendly interfaces.
+Simple component-based GUI Toolkit for developing beautiful and user-friendly interfaces.
 
-A Cross-Platform GUI toolkit for Rust language based on:
-- Webrender — as render system
-- Yoga — for layout management
-- RSX — for templates and styles
+**Rise** is a cross-Platform GUI toolkit for Rust language based on:
+- **[Webrender](https://github.com/servo/webrender)** render system
+- **[Yoga](https://github.com/bschwind/yoga-rs)** layout manager
+- **[RSX](https://github.com/victorporof/rsx)** for templates and styles
 
-### Screenshot of current status
+### Screenshot
 <p align="center">
   <img width="400" src="examples/layout-screenshot.png">
 </p>
-
-### Disclaimer
-The project is developed by an amateur with the support of other amateurs from the Russian Rust community.
