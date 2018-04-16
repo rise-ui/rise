@@ -2,6 +2,6 @@ pub mod draw;
 pub mod style;
 
 pub mod prelude {
-  pub use draw::*;
-  pub use style::*;
+  pub use layout::style::draw::*;
+  pub use layout::style::style::*;
 }

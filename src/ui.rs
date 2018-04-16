@@ -1,7 +1,7 @@
 // Layout
 use glutin::EventsLoop;
 use layout::layout::Layout;
-use layout::view::View;
+use solver::prelude::Shortcuts;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -12,6 +12,7 @@ use window::Window;
 
 pub struct Ui {
   pub render: Rc<RefCell<WebRenderContext>>,
+  pub shortcuts: Rc<RefCell<Shortcuts>>,
   event_loop: Rc<RefCell<EventsLoop>>,
   pub window: Rc<RefCell<Window>>,
   pub layout: Rc<RefCell<Layout>>,
@@ -27,6 +28,7 @@ impl Ui {
     layout: Layout,
   ) -> Ui {
     Ui {
+      shortcuts: Rc::new(RefCell::new(Shortcuts::new())),
       render: Rc::new(RefCell::new(render)),
       window: Rc::new(RefCell::new(window)),
       layout: Rc::new(RefCell::new(layout)),

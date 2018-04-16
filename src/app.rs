@@ -1,4 +1,4 @@
-use glutin::{self, Event, EventsLoop, WindowBuilder};
+use glutin::{self, Event, EventsLoop, WindowBuilder, WindowEvent};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -144,5 +144,12 @@ impl App {
     }
   }
 
-  fn handle_window_event(&mut self, event: Event) {}
+  fn handle_window_event(&mut self, event: Event) {
+    if let Event::WindowEvent { event, .. } = event {
+      if let WindowEvent::KeyboardInput { input, .. } = event {
+        let shortcuts = self.ui.shortcuts.clone();
+        shortcuts.borrow_mut().send_keyboard_input(input);
+      }
+    }
+  }
 }

@@ -1,5 +1,5 @@
-use layout::style::prelude::{DrawerStyle, RefCellDrawerStyle, Style};
 use rsx_stylesheet::types::StyleDeclarations;
+use style::{DrawerStyle, RefCellDrawerStyle, Style};
 
 use render::RenderBuilder;
 use std::cell::RefCell;

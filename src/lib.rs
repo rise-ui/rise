@@ -31,16 +31,22 @@ extern crate ordered_float;
 extern crate rusttype;
 
 mod app;
+mod event;
 mod geometry;
 mod layout;
 mod render;
 mod resources;
+mod solver;
 mod text;
 mod ui;
+mod utils;
 mod window;
 
 pub use app::*;
+pub use event::*;
 pub use layout::prelude::*;
 pub use render::*;
+pub use solver::*;
 pub use text::*;
+pub use utils::prelude::*;
 pub use window::*;
