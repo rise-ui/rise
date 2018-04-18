@@ -24,7 +24,7 @@ pub type RefCellDrawerView = Rc<RefCell<DrawerView>>;
 pub trait DrawerView {
   fn draw(&self, render: Rc<RefCell<RenderBuilder>>);
   fn get_parent(&self) -> Option<RefCellDrawerView>;
-  fn get_childs(&self) -> &Vec<RefCellDrawerView>;
+  fn get_children(&self) -> &[RefCellDrawerView];
   fn get_style(&self) -> RefCellDrawerStyle;
 
   fn set_depth(&mut self, depth: Option<i32>);
@@ -36,19 +36,18 @@ pub trait DrawerView {
 #[derive(Clone)]
 pub struct View {
   parent: Option<RefCellDrawerView>,
-  childs: Vec<RefCellDrawerView>,
+  children: Vec<RefCellDrawerView>,
   style: RefCellDrawerStyle,
   depth: Option<i32>,
 }
 
 impl DrawerView for View {
   fn draw(&self, render: Rc<RefCell<RenderBuilder>>) {
-    let childs = self.get_childs();
     let style = self.get_style();
 
     style.borrow_mut().draw(render.clone());
 
-    for child in childs.iter() {
+    for child in self.get_children() {
       child.borrow_mut().draw(render.clone());
       render.borrow_mut().builder.pop_stacking_context();
     }
@@ -58,8 +57,8 @@ impl DrawerView for View {
     return self.style.clone();
   }
 
-  fn get_childs(&self) -> &Vec<RefCellDrawerView> {
-    return &self.childs;
+  fn get_children(&self) -> &[RefCellDrawerView] {
+    return self.children.as_slice();
   }
 
   fn get_depth(&self) -> Option<i32> {
@@ -76,11 +75,11 @@ impl DrawerView for View {
 }
 
 impl View {
-  pub fn new(style: StyleDeclarations, childs: Vec<View>) -> View {
+  pub fn new(style: StyleDeclarations, children: Vec<View>) -> View {
     let style = Rc::new(RefCell::new(Style::new(style)));
-    prepare_node(style.clone(), &childs);
+    prepare_node(style.clone(), &children);
 
-    let childs: Vec<RefCellDrawerView> = childs
+    let children: Vec<RefCellDrawerView> = children
       .into_iter()
       .map(|view| Rc::new(RefCell::new(view)) as RefCellDrawerView)
       .collect();
@@ -88,7 +87,7 @@ impl View {
     View {
       parent: None,
       depth: None,
-      childs,
+      children,
       style,
     }
   }
