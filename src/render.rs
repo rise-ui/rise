@@ -1,5 +1,6 @@
-use std::sync::Arc;
+pub use rise_stylesheet::common::RenderBuilder;
 use std::sync::atomic::{self, AtomicBool};
+use std::sync::Arc;
 
 use gleam::gl;
 use glutin;
@@ -22,11 +23,6 @@ pub struct WebRenderContext {
   pub frame_ready: Arc<AtomicBool>,
 }
 
-pub struct RenderBuilder {
-  pub builder: DisplayListBuilder,
-  pub resources: ResourceUpdates,
-}
-
 impl WebRenderContext {
   pub fn new(window: &mut Window, events_loop: &glutin::EventsLoop) -> Self {
     let gl = window.gl();
@@ -39,7 +35,6 @@ impl WebRenderContext {
       resource_override_path: None,
       enable_subpixel_aa: true,
       precache_shaders: false,
-      debug: false,
       ..webrender::RendererOptions::default()
     };
 

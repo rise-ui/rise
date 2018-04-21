@@ -3,20 +3,15 @@ name = "rise"
 version = "0.1.0"
 authors = ["Anton Shramko <antonshramko@yandex.ru>"]
 
-[workspace]
-members = [
-  "rsx/stylesheet"
-]
-
 [dependencies]
+euclid = { version = "0.17", features = ["serde"] }
 env_logger = "0.4"
 gleam = "0.4.20"
-euclid = "0.16"
 log = "0.3"
 
-rsx-shared = { git = "https://github.com/victorporof/rsx-shared.git", default-features = false, features = ["impl-external-yoga"] }
-webrender = { git = "https://github.com/servo/webrender" }
-rsx-stylesheet = { path = "./rsx/stylesheet" }
+webrender = { git = "https://github.com/servo/webrender", rev = "ad06d8e05e8475c9788cffa7e6cbac70acbdb399"}
+# rise-stylesheet = { path = "../rise-stylesheet"}
+rise-stylesheet = { git = "https://github.com/rise-ui/rise-stylesheet"}
 limn-text_layout = { path = "./text_layout" }
 ordered-float = "0.5.0"
 palette = "0.3"

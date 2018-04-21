@@ -3,8 +3,9 @@ use std::path::PathBuf;
 
 use failure::Error;
 
-use webrender::api::{RenderApi, ResourceUpdates, ExternalImageId, ExternalImageData, ImageKey, ImageFormat, ImageData, ImageDescriptor};
-use image::{self, ImageError, DynamicImage, GenericImage};
+use image::{self, DynamicImage, GenericImage, ImageError};
+use webrender::api::{ExternalImageData, ExternalImageId, ImageData, ImageDescriptor, ImageFormat,
+                     ImageKey, RenderApi, ResourceUpdates};
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum ImageSource {
@@ -64,16 +65,16 @@ impl ImageLoader {
             Ok(&self.images[source])
         } else {
             let (data, descriptor) = match *source {
-                ImageSource::AbsolutePath(ref path) => {
-                    prepare_image(image::open(&path)?)?
-                },
+                ImageSource::AbsolutePath(ref path) => prepare_image(image::open(&path)?)?,
                 ImageSource::AssetPath(ref relative_path) => {
                     let mut path = PathBuf::from(&self.assets_path);
                     path.push(relative_path);
                     prepare_image(image::open(&path)?)?
-                },
+                }
                 ImageSource::Bundled(ref name) => {
-                    return Err(BundledImageMissingError { name: name.to_owned() }.into())
+                    return Err(BundledImageMissingError {
+                        name: name.to_owned(),
+                    }.into())
                 }
             };
 
@@ -81,25 +82,45 @@ impl ImageLoader {
         }
     }
 
-    fn put_image(&mut self, source: &ImageSource, data: ImageData, descriptor: ImageDescriptor) -> &ImageInfo {
+    fn put_image(
+        &mut self,
+        source: &ImageSource,
+        data: ImageData,
+        descriptor: ImageDescriptor,
+    ) -> &ImageInfo {
         let image_info = self.create_image_resource(data, descriptor);
         self.images.insert(source.clone(), image_info);
         &self.images[source]
     }
 
-    pub fn create_image_resource(&mut self, data: ImageData, descriptor: ImageDescriptor) -> ImageInfo {
+    pub fn create_image_resource(
+        &mut self,
+        data: ImageData,
+        descriptor: ImageDescriptor,
+    ) -> ImageInfo {
         let key = self.render_api().generate_image_key();
         let mut resources = ResourceUpdates::new();
         resources.add_image(key, descriptor, data, None);
         self.render_api().update_resources(resources);
-        ImageInfo { key: key, descriptor: descriptor }
+        ImageInfo {
+            key: key,
+            descriptor: descriptor,
+        }
     }
 
-    pub fn update_texture(&mut self, key: ImageKey, descriptor: ImageDescriptor, data: ExternalImageData) {
+    pub fn update_texture(
+        &mut self,
+        key: ImageKey,
+        descriptor: ImageDescriptor,
+        data: ExternalImageData,
+    ) {
         let mut resources = ResourceUpdates::new();
         resources.update_image(key, descriptor, ImageData::External(data), None);
         self.render_api().update_resources(resources);
-        let ExternalImageData { id: ExternalImageId(texture_id), .. } = data;
+        let ExternalImageData {
+            id: ExternalImageId(texture_id),
+            ..
+        } = data;
         self.texture_descriptors.insert(texture_id, descriptor);
     }
 
@@ -135,7 +156,7 @@ fn prepare_image(image: DynamicImage) -> Result<(ImageData, ImageDescriptor), Er
         premultiply(bytes.as_mut_slice());
     }
     let opaque = is_image_opaque(format, &bytes[..]);
-    let descriptor = ImageDescriptor::new(image_dims.0, image_dims.1, format, opaque);
+    let descriptor = ImageDescriptor::new(image_dims.0, image_dims.1, format, opaque, true);
     let data = ImageData::new(bytes);
     Ok((data, descriptor))
 }
@@ -172,4 +193,3 @@ pub fn premultiply(data: &mut [u8]) {
         pixel[0] = ((b * a + 128) / 255) as u8;
     }
 }
-

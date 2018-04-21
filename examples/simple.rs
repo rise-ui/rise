@@ -1,70 +1,31 @@
 #![feature(box_syntax)]
 #![feature(proc_macro)]
 
-extern crate ordered_float;
 extern crate rise;
-extern crate rsx_stylesheet;
+extern crate rise_stylesheet;
 
-mod common;
+use rise::{App, Layout, ViewRef, WindowOptions, WindowPosition};
+use rise_stylesheet::styles::prelude::{Style, Stylesheet};
 
-use ordered_float::OrderedFloat;
-use rsx_stylesheet::types::Stylesheet;
-use rsx_stylesheet::types::*;
-use rsx_stylesheet::*;
-
-use rise::{App, Layout, View, WindowOptions, WindowPosition};
+fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> ViewRef<()> {
+  let mut style = stylesheet.take(style_name.to_string()).unwrap();
+  style.apply_tag("default".to_string());
+  ViewRef::new((), style)
+}
 
 fn main() {
-  let layout = Layout::new(View::new(
-    common::add_border_radius_to_all(
-      style!{
-        background-color: { rgb(224, 224, 224) };
-        justify-content: { center };
-        flex-direction: { row };
-        align-items: { center };
+  let stylesheet = {
+    let mut stylesheet = Stylesheet::default();
+    stylesheet
+      .load_from_string(include_str!("styles.json").to_string())
+      .unwrap();
 
-        padding-right: { 30 px };
-        padding-left: { 30 px };
+    stylesheet
+  };
 
-        margin-top   : { 0 px };
-        margin-left  : { 0 px };
-        margin-bottom: { 0 px };
-        margin-right : { 0 px };
-      },
-      15.0,
-    ),
-    vec![
-      View::new(
-        common::add_border_radius_to_all(
-          style! {
-            background-color: { rgb(255, 255, 255) };
-            height: { 250 px }; width: { 250 px };
-            justify-content: { center };
-            flex-direction: { column };
-            align-items: { center };
-
-            padding-bottom: { 30 px };
-            padding-right: { 30 px };
-            padding-left: { 30 px };
-            padding-top: { 30 px };
-          },
-          6.0,
-        ),
-        vec![
-          View::new(
-            common::add_border_radius_to_all(
-              style! {
-                background-color: { rgb(96, 125, 139) };
-                height: { 50 px }; width: { 50 px };
-              },
-              50.0,
-            ),
-            vec![],
-          ),
-        ],
-      ),
-    ],
-  ));
+  let layout_container = get_view_by_style(stylesheet.clone(), "layout");
+  let circle_child = get_view_by_style(stylesheet.clone(), "circle");
+  layout_container.append(circle_child);
 
   let app = App::new(
     WindowOptions {
@@ -72,7 +33,7 @@ fn main() {
       position: WindowPosition::Center,
       window_size: (500, 500),
     },
-    layout,
+    Layout::new(layout_container),
   );
 
   app.run();

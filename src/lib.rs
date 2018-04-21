@@ -2,9 +2,7 @@
 #![feature(proc_macro)]
 
 #[macro_use]
-extern crate rsx_stylesheet;
-#[macro_use]
-extern crate rsx_shared;
+extern crate rise_stylesheet;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -44,9 +42,8 @@ mod window;
 
 pub use app::*;
 pub use event::*;
-pub use layout::prelude::*;
+pub use layout::*;
 pub use render::*;
 pub use solver::*;
 pub use text::*;
-pub use utils::prelude::*;
 pub use window::*;

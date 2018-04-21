@@ -1,6 +1,6 @@
 // Layout
 use glutin::EventsLoop;
-use layout::layout::Layout;
+use layout::Layout;
 use solver::prelude::Shortcuts;
 
 use std::cell::RefCell;

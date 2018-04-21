@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 // Core contexts
-use layout::layout::Layout;
+use layout::Layout;
 use render::WebRenderContext;
 use ui::Ui;
 use window::Window;

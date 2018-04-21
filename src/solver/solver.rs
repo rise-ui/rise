@@ -1,4 +1,4 @@
-use layout::layout::Layout;
+use layout::Layout;
 use std::cell::RefCell;
 use std::rc::Rc;
 
