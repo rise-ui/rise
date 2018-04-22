@@ -10,23 +10,23 @@ use std::rc::Rc;
 use render::{RenderBuilder, WebRenderContext};
 use window::Window;
 
-pub struct Ui {
+pub struct Ui<T> {
   pub render: Rc<RefCell<WebRenderContext>>,
   pub shortcuts: Rc<RefCell<Shortcuts>>,
   event_loop: Rc<RefCell<EventsLoop>>,
   pub window: Rc<RefCell<Window>>,
-  pub layout: Rc<RefCell<Layout>>,
+  pub layout: Rc<RefCell<Layout<T>>>,
   needs_redraw: bool,
   should_close: bool,
 }
 
-impl Ui {
+impl<T> Ui<T> {
   pub fn new(
     event_loop: Rc<RefCell<EventsLoop>>,
     render: WebRenderContext,
     window: Window,
-    layout: Layout,
-  ) -> Ui {
+    layout: Layout<T>,
+  ) -> Ui<T> {
     Ui {
       shortcuts: Rc::new(RefCell::new(Shortcuts::new())),
       render: Rc::new(RefCell::new(render)),

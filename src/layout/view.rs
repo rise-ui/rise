@@ -1,465 +1,387 @@
-#![feature(rc_weak)]
+#![cfg_attr(test_threads, feature(scoped))]
 
-use rise_stylesheet::common::RenderBuilder;
-use rise_stylesheet::styles::prelude::Style;
-use rise_stylesheet::yoga;
-use std::cell::{self, RefCell};
-use std::fmt;
-use std::ops::{Deref, DerefMut};
-use std::rc::{Rc, Weak};
+use render::RenderBuilder;
+use rise_stylesheet::styles::style::Style;
+use rise_stylesheet::yoga::{self, Node as YogaNode};
+use std::cell::RefCell;
+use std::mem;
+use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 
-/// A reference to a node holding a value of type `T`. Nodes form a tree.
-///
-/// Internally, this uses reference counting for lifetime tracking
-/// and `std::cell::RefCell` for interior mutability.
-///
-/// **Note:** Cloning a `ViewRef` only increments a reference count. It does not copy the data.
-pub struct ViewRef<T>(Rc<RefCell<View<T>>>);
+/// A node identifier within a particular `Arena`.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub struct ViewId {
+  index: usize, // FIXME: use NonZero to optimize the size of Option<ViewId>
+}
 
+#[derive(Clone)]
 pub struct View<T> {
-  previous_sibling: WeakLink<T>,
-  last_child: WeakLink<T>,
-  next_sibling: Link<T>,
-  first_child: Link<T>,
-  parent: WeakLink<T>,
-  pub style: Style,
-  data: T,
+  // Keep these private (with read-only accessors) so that we can keep them consistent.
+  // E.g. the parent of a node’s child is that node.
+  parent: Option<ViewId>,
+  previous_sibling: Option<ViewId>,
+  next_sibling: Option<ViewId>,
+  first_child: Option<ViewId>,
+  last_child: Option<ViewId>,
+
+  pub style: Rc<RefCell<Style>>,
+  pub data: T,
 }
 
-type Link<T> = Option<Rc<RefCell<View<T>>>>;
-type WeakLink<T> = Option<Weak<RefCell<View<T>>>>;
-
-fn same_rc<T>(a: &Rc<T>, b: &Rc<T>) -> bool {
-  let a: *const T = &**a;
-  let b: *const T = &**b;
-  a == b
+#[derive(Clone)]
+pub struct Arena<T> {
+  nodes: Vec<View<T>>,
 }
 
-/// Cloning a `ViewRef` only increments a reference count. It does not copy the data.
-impl<T> Clone for ViewRef<T> {
-  fn clone(&self) -> ViewRef<T> {
-    ViewRef(self.0.clone())
+impl<T> Arena<T> {
+  pub fn new() -> Arena<T> {
+    Arena { nodes: Vec::new() }
   }
-}
 
-impl<T: fmt::Debug> fmt::Debug for ViewRef<T> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&*self.borrow(), f)
-  }
-}
-
-macro_rules! try_opt {
-  ($expr:expr) => {
-    match $expr {
-      Some(value) => value,
-      None => return None,
-    }
-  };
-}
-
-impl<T> ViewRef<T> {
   /// Create a new node from its associated data.
-  pub fn new(data: T, style: Style) -> ViewRef<T> {
-    ViewRef(Rc::new(RefCell::new(View {
+  pub fn new_node(&mut self, data: T, style: Style) -> ViewId {
+    let next_index = self.nodes.len();
+    self.nodes.push(View {
+      style: Rc::new(RefCell::new(style)),
       previous_sibling: None,
       next_sibling: None,
       first_child: None,
       last_child: None,
       parent: None,
-      style,
-      data,
-    })))
+      data: data,
+    });
+    ViewId { index: next_index }
+  }
+}
+
+trait GetPairMut<T> {
+  /// Get mutable references to two distinct nodes
+  ///
+  /// Panic
+  /// -----
+  ///
+  /// Panics if the two given IDs are the same.
+  fn get_pair_mut(
+    &mut self,
+    a: usize,
+    b: usize,
+    same_index_error_message: &'static str,
+  ) -> (&mut T, &mut T);
+}
+
+impl<T> GetPairMut<T> for Vec<T> {
+  fn get_pair_mut(
+    &mut self,
+    a: usize,
+    b: usize,
+    same_index_error_message: &'static str,
+  ) -> (&mut T, &mut T) {
+    if a == b {
+      panic!(same_index_error_message)
+    }
+    unsafe {
+      let self2 = mem::transmute_copy::<&mut Vec<T>, &mut Vec<T>>(&self);
+      (&mut self[a], &mut self2[b])
+    }
+  }
+}
+
+impl<T> Index<ViewId> for Arena<T> {
+  type Output = View<T>;
+
+  fn index(&self, node: ViewId) -> &View<T> {
+    &self.nodes[node.index]
+  }
+}
+
+impl<T> IndexMut<ViewId> for Arena<T> {
+  fn index_mut(&mut self, node: ViewId) -> &mut View<T> {
+    &mut self.nodes[node.index]
+  }
+}
+
+impl<T> View<T> {
+  fn get_layout_node(&self) -> Rc<RefCell<YogaNode>> {
+    let style = self.style.clone();
+    let node = style.borrow().layout_node.clone();
+    node
   }
 
   pub fn calculate_layout(&self, window_size: (f32, f32)) {
-    let mut root_ref = self.0.borrow_mut();
-
-    root_ref
-      .style
-      .layout_node
+    let node = self.get_layout_node();
+    node
+      .borrow_mut()
       .calculate_layout(window_size.0, window_size.1, yoga::Direction::LTR);
   }
 
-  pub fn render(&self, render: Rc<RefCell<RenderBuilder>>) {
-    self.0.borrow_mut().style.draw(render.clone());
+  /// Return the ID of the parent node, unless this node is the root of the tree.
+  pub fn parent(&self) -> Option<ViewId> {
+    self.parent
+  }
 
-    for child in self.children() {
-      child.render(render.clone());
+  /// Return the ID of the first child of this node, unless it has no child.
+  pub fn first_child(&self) -> Option<ViewId> {
+    self.first_child
+  }
+
+  /// Return the ID of the last child of this node, unless it has no child.
+  pub fn last_child(&self) -> Option<ViewId> {
+    self.last_child
+  }
+
+  /// Return the ID of the previous sibling of this node, unless it is a first child.
+  pub fn previous_sibling(&self) -> Option<ViewId> {
+    self.previous_sibling
+  }
+
+  /// Return the ID of the previous sibling of this node, unless it is a first child.
+  pub fn next_sibling(&self) -> Option<ViewId> {
+    self.next_sibling
+  }
+}
+
+impl ViewId {
+  pub fn render<T>(self, arena: &Arena<T>, render: Rc<RefCell<RenderBuilder>>) {
+    let node = &arena[self];
+    let style = node.style.clone();
+    style.borrow_mut().draw(render.clone());
+
+    for child in self.children(&arena) {
+      child.render(&arena, render.clone());
       render.borrow_mut().builder.pop_stacking_context();
     }
-  }
-
-  /// Return a reference to the parent node, unless this node is the root of the tree.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn parent(&self) -> Option<ViewRef<T>> {
-    Some(ViewRef(try_opt!(
-      try_opt!(self.0.borrow().parent.as_ref()).upgrade()
-    )))
-  }
-
-  /// Return a reference to the first child of this node, unless it has no child.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn first_child(&self) -> Option<ViewRef<T>> {
-    Some(ViewRef(
-      try_opt!(self.0.borrow().first_child.as_ref()).clone(),
-    ))
-  }
-
-  /// Return a reference to the last child of this node, unless it has no child.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn last_child(&self) -> Option<ViewRef<T>> {
-    Some(ViewRef(try_opt!(
-      try_opt!(self.0.borrow().last_child.as_ref()).upgrade()
-    )))
-  }
-
-  /// Return a reference to the previous sibling of this node, unless it is a first child.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn previous_sibling(&self) -> Option<ViewRef<T>> {
-    Some(ViewRef(try_opt!(
-      try_opt!(self.0.borrow().previous_sibling.as_ref()).upgrade()
-    )))
-  }
-
-  /// Return a reference to the previous sibling of this node, unless it is a first child.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn next_sibling(&self) -> Option<ViewRef<T>> {
-    Some(ViewRef(
-      try_opt!(self.0.borrow().next_sibling.as_ref()).clone(),
-    ))
-  }
-
-  /// Return a shared reference to this node’s data
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn borrow(&self) -> Ref<T> {
-    Ref {
-      _ref: self.0.borrow(),
-    }
-  }
-
-  /// Return a unique/mutable reference to this node’s data
-  /// # Panics
-  /// Panics if the node is currently borrowed.
-  pub fn borrow_mut(&self) -> RefMut<T> {
-    RefMut {
-      _ref: self.0.borrow_mut(),
-    }
-  }
-
-  /// Returns whether two references point to the same node.
-  pub fn same_node(&self, other: &ViewRef<T>) -> bool {
-    same_rc(&self.0, &other.0)
   }
 
   /// Return an iterator of references to this node and its ancestors.
   ///
   /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-  pub fn ancestors(&self) -> Ancestors<T> {
-    Ancestors(Some(self.clone()))
+  pub fn ancestors<T>(self, arena: &Arena<T>) -> Ancestors<T> {
+    Ancestors {
+      arena: arena,
+      node: Some(self),
+    }
   }
 
   /// Return an iterator of references to this node and the siblings before it.
   ///
   /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-  pub fn preceding_siblings(&self) -> PrecedingSiblings<T> {
-    PrecedingSiblings(Some(self.clone()))
+  pub fn preceding_siblings<T>(self, arena: &Arena<T>) -> PrecedingSiblings<T> {
+    PrecedingSiblings {
+      arena: arena,
+      node: Some(self),
+    }
   }
 
   /// Return an iterator of references to this node and the siblings after it.
   ///
   /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-  pub fn following_siblings(&self) -> FollowingSiblings<T> {
-    FollowingSiblings(Some(self.clone()))
+  pub fn following_siblings<T>(self, arena: &Arena<T>) -> FollowingSiblings<T> {
+    FollowingSiblings {
+      arena: arena,
+      node: Some(self),
+    }
   }
 
   /// Return an iterator of references to this node’s children.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn children(&self) -> Children<T> {
-    Children(self.first_child())
+  pub fn children<T>(self, arena: &Arena<T>) -> Children<T> {
+    Children {
+      arena: arena,
+      node: arena[self].first_child,
+    }
   }
 
   /// Return an iterator of references to this node’s children, in reverse order.
-  /// # Panics
-  /// Panics if the node is currently mutability borrowed.
-  pub fn reverse_children(&self) -> ReverseChildren<T> {
-    ReverseChildren(self.last_child())
+  pub fn reverse_children<T>(self, arena: &Arena<T>) -> ReverseChildren<T> {
+    ReverseChildren {
+      arena: arena,
+      node: arena[self].last_child,
+    }
   }
 
   /// Return an iterator of references to this node and its descendants, in tree order.
   ///
   /// Parent nodes appear before the descendants.
   /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-  pub fn descendants(&self) -> Descendants<T> {
-    Descendants(self.traverse())
+  pub fn descendants<T>(self, arena: &Arena<T>) -> Descendants<T> {
+    Descendants(self.traverse(arena))
   }
 
   /// Return an iterator of references to this node and its descendants, in tree order.
-  pub fn traverse(&self) -> Traverse<T> {
+  pub fn traverse<T>(self, arena: &Arena<T>) -> Traverse<T> {
     Traverse {
-      root: self.clone(),
-      next: Some(NodeEdge::Start(self.clone())),
+      arena: arena,
+      root: self,
+      next: Some(NodeEdge::Start(self)),
     }
   }
 
   /// Return an iterator of references to this node and its descendants, in tree order.
-  pub fn reverse_traverse(&self) -> ReverseTraverse<T> {
+  pub fn reverse_traverse<T>(self, arena: &Arena<T>) -> ReverseTraverse<T> {
     ReverseTraverse {
-      root: self.clone(),
-      next: Some(NodeEdge::End(self.clone())),
+      arena: arena,
+      root: self,
+      next: Some(NodeEdge::End(self)),
     }
   }
 
   /// Detach a node from its parent and siblings. Children are not affected.
-  /// # Panics
-  /// Panics if the node or one of its adjoining nodes is currently borrowed.
-  pub fn detach(&self) {
-    self.0.borrow_mut().detach();
-  }
+  pub fn detach<T>(self, arena: &mut Arena<T>) {
+    let (parent, previous_sibling, next_sibling) = {
+      let node = &mut arena[self];
+      (
+        node.parent.take(),
+        node.previous_sibling.take(),
+        node.next_sibling.take(),
+      )
+    };
 
-  pub fn attach_node_to_layout(&self) {
-    let self_index = self.preceding_siblings().count();
-    if let Some(parent) = self.parent() {
-      let mut parent_borrow = parent.0.borrow_mut();
-      let mut self_borrow = self.0.borrow_mut();
+    if let Some(next_sibling) = next_sibling {
+      arena[next_sibling].previous_sibling = previous_sibling;
+    } else if let Some(parent) = parent {
+      arena[parent].last_child = previous_sibling;
+    }
 
-      parent_borrow
-        .style
-        .layout_node
-        .insert_child(&mut self_borrow.style.layout_node, self_index as u32);
+    if let Some(previous_sibling) = previous_sibling {
+      arena[previous_sibling].next_sibling = next_sibling;
+    } else if let Some(parent) = parent {
+      arena[parent].first_child = next_sibling;
     }
   }
 
   /// Append a new child to this node, after existing children.
-  /// # Panics
-  /// Panics if the node, the new child, or one of their adjoining nodes is currently borrowed.
-  pub fn append(&self, new_child: ViewRef<T>) {
-    let mut self_borrow = self.0.borrow_mut();
-    let mut last_child_opt = None;
+  pub fn append<T>(self, new_child: ViewId, arena: &mut Arena<T>) {
+    new_child.detach(arena);
+    let last_child_opt;
 
     {
-      let mut new_child_borrow = new_child.0.borrow_mut();
-      new_child_borrow.detach();
-      new_child_borrow.parent = Some(Rc::downgrade(&self.0));
-      if let Some(last_child_weak) = self_borrow.last_child.take() {
-        if let Some(last_child_strong) = last_child_weak.upgrade() {
-          new_child_borrow.previous_sibling = Some(last_child_weak);
-          last_child_opt = Some(last_child_strong);
-        }
+      let (self_borrow, new_child_borrow) = arena.nodes.get_pair_mut(
+        self.index,
+        new_child.index,
+        "Can not append a node to itself",
+      );
+      new_child_borrow.parent = Some(self);
+      last_child_opt = mem::replace(&mut self_borrow.last_child, Some(new_child));
+      if let Some(last_child) = last_child_opt {
+        new_child_borrow.previous_sibling = Some(last_child);
+      } else {
+        debug_assert!(self_borrow.first_child.is_none());
+        self_borrow.first_child = Some(new_child);
       }
-      self_borrow.last_child = Some(Rc::downgrade(&new_child.0));
     }
 
-    if let Some(last_child_strong) = last_child_opt {
-      let mut last_child_borrow = last_child_strong.borrow_mut();
-      debug_assert!(last_child_borrow.next_sibling.is_none());
-      last_child_borrow.next_sibling = Some(new_child.0.clone());
-    } else {
-      // No last child
-      debug_assert!(self_borrow.first_child.is_none());
-      self_borrow.first_child = Some(new_child.0.clone());
+    if let Some(last_child) = last_child_opt {
+      debug_assert!(arena[last_child].next_sibling.is_none());
+      arena[last_child].next_sibling = Some(new_child);
     }
 
-    new_child.attach_node_to_layout();
+    {
+      let child_view = &arena[new_child];
+      let child_index = new_child.preceding_siblings(&arena).count();
+
+      if let Some(parent_id) = child_view.parent {
+        let parent_view = &arena[parent_id];
+
+        let parent_node = parent_view.get_layout_node();
+        let child_node = child_view.get_layout_node();
+
+        parent_node
+          .borrow_mut()
+          .insert_child(&mut child_node.borrow_mut(), child_index as u32);
+      }
+    }
   }
 
   /// Prepend a new child to this node, before existing children.
-  /// # Panics
-  /// Panics if the node, the new child, or one of their adjoining nodes is currently borrowed.
-  pub fn prepend(&self, new_child: ViewRef<T>) {
-    let mut self_borrow = self.0.borrow_mut();
+  pub fn prepend<T>(self, new_child: ViewId, arena: &mut Arena<T>) {
+    new_child.detach(arena);
+    let first_child_opt;
     {
-      let mut new_child_borrow = new_child.0.borrow_mut();
-      new_child_borrow.detach();
-      new_child_borrow.parent = Some(Rc::downgrade(&self.0));
-      match self_borrow.first_child.take() {
-        Some(first_child_strong) => {
-          {
-            let mut first_child_borrow = first_child_strong.borrow_mut();
-            debug_assert!(first_child_borrow.previous_sibling.is_none());
-            first_child_borrow.previous_sibling = Some(Rc::downgrade(&new_child.0));
-          }
-          new_child_borrow.next_sibling = Some(first_child_strong);
-        }
-        None => {
-          debug_assert!(self_borrow.first_child.is_none());
-          self_borrow.last_child = Some(Rc::downgrade(&new_child.0));
-        }
+      let (self_borrow, new_child_borrow) = arena.nodes.get_pair_mut(
+        self.index,
+        new_child.index,
+        "Can not prepend a node to itself",
+      );
+      new_child_borrow.parent = Some(self);
+      first_child_opt = mem::replace(&mut self_borrow.first_child, Some(new_child));
+      if let Some(first_child) = first_child_opt {
+        new_child_borrow.next_sibling = Some(first_child);
+      } else {
+        debug_assert!(&self_borrow.first_child.is_none());
+        self_borrow.last_child = Some(new_child);
       }
     }
-    self_borrow.first_child = Some(new_child.0.clone());
-
-    new_child.attach_node_to_layout();
+    if let Some(first_child) = first_child_opt {
+      debug_assert!(arena[first_child].previous_sibling.is_none());
+      arena[first_child].previous_sibling = Some(new_child);
+    }
   }
 
   /// Insert a new sibling after this node.
-  /// # Panics
-  /// Panics if the node, the new sibling, or one of their adjoining nodes is currently borrowed.
-  pub fn insert_after(&self, new_sibling: ViewRef<T>) {
-    let mut self_borrow = self.0.borrow_mut();
+  pub fn insert_after<T>(self, new_sibling: ViewId, arena: &mut Arena<T>) {
+    new_sibling.detach(arena);
+    let next_sibling_opt;
+    let parent_opt;
     {
-      let mut new_sibling_borrow = new_sibling.0.borrow_mut();
-      new_sibling_borrow.detach();
-      new_sibling_borrow.parent = self_borrow.parent.clone();
-      new_sibling_borrow.previous_sibling = Some(Rc::downgrade(&self.0));
-      match self_borrow.next_sibling.take() {
-        Some(next_sibling_strong) => {
-          {
-            let mut next_sibling_borrow = next_sibling_strong.borrow_mut();
-            debug_assert!({
-              let weak = next_sibling_borrow.previous_sibling.as_ref().unwrap();
-              same_rc(&weak.upgrade().unwrap(), &self.0)
-            });
-            next_sibling_borrow.previous_sibling = Some(Rc::downgrade(&new_sibling.0));
-          }
-          new_sibling_borrow.next_sibling = Some(next_sibling_strong);
-        }
-        None => {
-          if let Some(parent_ref) = self_borrow.parent.as_ref() {
-            if let Some(parent_strong) = parent_ref.upgrade() {
-              let mut parent_borrow = parent_strong.borrow_mut();
-              parent_borrow.last_child = Some(Rc::downgrade(&new_sibling.0));
-            }
-          }
-        }
+      let (self_borrow, new_sibling_borrow) = arena.nodes.get_pair_mut(
+        self.index,
+        new_sibling.index,
+        "Can not insert a node after itself",
+      );
+      parent_opt = self_borrow.parent;
+      new_sibling_borrow.parent = parent_opt;
+      new_sibling_borrow.previous_sibling = Some(self);
+      next_sibling_opt = mem::replace(&mut self_borrow.next_sibling, Some(new_sibling));
+      if let Some(next_sibling) = next_sibling_opt {
+        new_sibling_borrow.next_sibling = Some(next_sibling);
       }
     }
-    self_borrow.next_sibling = Some(new_sibling.0.clone());
-
-    new_sibling.attach_node_to_layout();
+    if let Some(next_sibling) = next_sibling_opt {
+      debug_assert!(arena[next_sibling].previous_sibling.unwrap() == self);
+      arena[next_sibling].previous_sibling = Some(new_sibling);
+    } else if let Some(parent) = parent_opt {
+      debug_assert!(arena[parent].last_child.unwrap() == self);
+      arena[parent].last_child = Some(new_sibling);
+    }
   }
 
   /// Insert a new sibling before this node.
-  /// # Panics
-  /// Panics if the node, the new sibling, or one of their adjoining nodes is currently borrowed.
-  pub fn insert_before(&self, new_sibling: ViewRef<T>) {
-    let mut self_borrow = self.0.borrow_mut();
-    let mut previous_sibling_opt = None;
-
+  pub fn insert_before<T>(self, new_sibling: ViewId, arena: &mut Arena<T>) {
+    new_sibling.detach(arena);
+    let previous_sibling_opt;
+    let parent_opt;
     {
-      let mut new_sibling_borrow = new_sibling.0.borrow_mut();
-      new_sibling_borrow.detach();
-      new_sibling_borrow.parent = self_borrow.parent.clone();
-      new_sibling_borrow.next_sibling = Some(self.0.clone());
-      if let Some(previous_sibling_weak) = self_borrow.previous_sibling.take() {
-        if let Some(previous_sibling_strong) = previous_sibling_weak.upgrade() {
-          new_sibling_borrow.previous_sibling = Some(previous_sibling_weak);
-          previous_sibling_opt = Some(previous_sibling_strong);
-        }
-      }
-      self_borrow.previous_sibling = Some(Rc::downgrade(&new_sibling.0));
-    }
-
-    if let Some(previous_sibling_strong) = previous_sibling_opt {
-      let mut previous_sibling_borrow = previous_sibling_strong.borrow_mut();
-      debug_assert!({
-        let rc = previous_sibling_borrow.next_sibling.as_ref().unwrap();
-        same_rc(rc, &self.0)
-      });
-      previous_sibling_borrow.next_sibling = Some(new_sibling.0.clone());
-    } else {
-      // No previous sibling.
-      if let Some(parent_ref) = self_borrow.parent.as_ref() {
-        if let Some(parent_strong) = parent_ref.upgrade() {
-          let mut parent_borrow = parent_strong.borrow_mut();
-          parent_borrow.first_child = Some(new_sibling.0.clone());
-        }
+      let (self_borrow, new_sibling_borrow) = arena.nodes.get_pair_mut(
+        self.index,
+        new_sibling.index,
+        "Can not insert a node before itself",
+      );
+      parent_opt = self_borrow.parent;
+      new_sibling_borrow.parent = parent_opt;
+      new_sibling_borrow.next_sibling = Some(self);
+      previous_sibling_opt = mem::replace(&mut self_borrow.previous_sibling, Some(new_sibling));
+      if let Some(previous_sibling) = previous_sibling_opt {
+        new_sibling_borrow.previous_sibling = Some(previous_sibling);
       }
     }
-
-    new_sibling.attach_node_to_layout();
-  }
-}
-
-/// Wraps a `std::cell::Ref` for a node’s data.
-pub struct Ref<'a, T: 'a> {
-  _ref: cell::Ref<'a, View<T>>,
-}
-
-/// Wraps a `std::cell::RefMut` for a node’s data.
-pub struct RefMut<'a, T: 'a> {
-  _ref: cell::RefMut<'a, View<T>>,
-}
-
-impl<'a, T> Deref for Ref<'a, T> {
-  type Target = T;
-  fn deref(&self) -> &T {
-    &self._ref.data
-  }
-}
-
-impl<'a, T> Deref for RefMut<'a, T> {
-  type Target = T;
-  fn deref(&self) -> &T {
-    &self._ref.data
-  }
-}
-
-impl<'a, T> DerefMut for RefMut<'a, T> {
-  fn deref_mut(&mut self) -> &mut T {
-    &mut self._ref.data
-  }
-}
-
-impl<T> View<T> {
-  /// Detach a node from its parent and siblings. Children are not affected.
-  fn detach(&mut self) {
-    let parent_weak = self.parent.take();
-    let previous_sibling_weak = self.previous_sibling.take();
-    let next_sibling_strong = self.next_sibling.take();
-
-    let previous_sibling_opt = previous_sibling_weak
-      .as_ref()
-      .and_then(|weak| weak.upgrade());
-
-    // Detach children from yoga layout
-    if let Some(parent_ref) = parent_weak.as_ref() {
-      if let Some(parent_strong) = parent_ref.upgrade() {
-        let mut parent_borrow = parent_strong.borrow_mut();
-        parent_borrow
-          .style
-          .layout_node
-          .remove_child(&mut self.style.layout_node);
-      }
-    }
-
-    if let Some(next_sibling_ref) = next_sibling_strong.as_ref() {
-      let mut next_sibling_borrow = next_sibling_ref.borrow_mut();
-      next_sibling_borrow.previous_sibling = previous_sibling_weak;
-    } else if let Some(parent_ref) = parent_weak.as_ref() {
-      if let Some(parent_strong) = parent_ref.upgrade() {
-        let mut parent_borrow = parent_strong.borrow_mut();
-        parent_borrow.last_child = previous_sibling_weak;
-      }
-    }
-
-    if let Some(previous_sibling_strong) = previous_sibling_opt {
-      let mut previous_sibling_borrow = previous_sibling_strong.borrow_mut();
-      previous_sibling_borrow.next_sibling = next_sibling_strong;
-    } else if let Some(parent_ref) = parent_weak.as_ref() {
-      if let Some(parent_strong) = parent_ref.upgrade() {
-        let mut parent_borrow = parent_strong.borrow_mut();
-        parent_borrow.first_child = next_sibling_strong;
-      }
+    if let Some(previous_sibling) = previous_sibling_opt {
+      debug_assert!(arena[previous_sibling].next_sibling.unwrap() == self);
+      arena[previous_sibling].next_sibling = Some(new_sibling);
+    } else if let Some(parent) = parent_opt {
+      debug_assert!(arena[parent].first_child.unwrap() == self);
+      arena[parent].first_child = Some(new_sibling);
     }
   }
 }
 
 macro_rules! impl_node_iterator {
   ($name:ident, $next:expr) => {
-    impl<T> Iterator for $name<T> {
-      type Item = ViewRef<T>;
-      /// Panics if the node about to be yielded is currently mutability borrowed.
-      fn next(&mut self) -> Option<ViewRef<T>> {
-        match self.0.take() {
+    impl<'a, T> Iterator for $name<'a, T> {
+      type Item = ViewId;
+
+      fn next(&mut self) -> Option<ViewId> {
+        match self.node.take() {
           Some(node) => {
-            self.0 = $next(&node);
+            self.node = $next(&self.arena[node]);
             Some(node)
           }
           None => None,
@@ -470,34 +392,47 @@ macro_rules! impl_node_iterator {
 }
 
 /// An iterator of references to the ancestors a given node.
-pub struct Ancestors<T>(Option<ViewRef<T>>);
-impl_node_iterator!(Ancestors, |node: &ViewRef<T>| node.parent());
+pub struct Ancestors<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  node: Option<ViewId>,
+}
+impl_node_iterator!(Ancestors, |node: &View<T>| node.parent);
 
 /// An iterator of references to the siblings before a given node.
-pub struct PrecedingSiblings<T>(Option<ViewRef<T>>);
-impl_node_iterator!(PrecedingSiblings, |node: &ViewRef<T>| node
-  .previous_sibling());
+pub struct PrecedingSiblings<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  node: Option<ViewId>,
+}
+impl_node_iterator!(PrecedingSiblings, |node: &View<T>| node.previous_sibling);
 
 /// An iterator of references to the siblings after a given node.
-pub struct FollowingSiblings<T>(Option<ViewRef<T>>);
-impl_node_iterator!(FollowingSiblings, |node: &ViewRef<T>| node.next_sibling());
+pub struct FollowingSiblings<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  node: Option<ViewId>,
+}
+impl_node_iterator!(FollowingSiblings, |node: &View<T>| node.next_sibling);
 
 /// An iterator of references to the children of a given node.
-pub struct Children<T>(Option<ViewRef<T>>);
-impl_node_iterator!(Children, |node: &ViewRef<T>| node.next_sibling());
+pub struct Children<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  node: Option<ViewId>,
+}
+impl_node_iterator!(Children, |node: &View<T>| node.next_sibling);
 
 /// An iterator of references to the children of a given node, in reverse order.
-pub struct ReverseChildren<T>(Option<ViewRef<T>>);
-impl_node_iterator!(ReverseChildren, |node: &ViewRef<T>| node.previous_sibling());
+pub struct ReverseChildren<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  node: Option<ViewId>,
+}
+impl_node_iterator!(ReverseChildren, |node: &View<T>| node.previous_sibling);
 
 /// An iterator of references to a given node and its descendants, in tree order.
-pub struct Descendants<T>(Traverse<T>);
+pub struct Descendants<'a, T: 'a>(Traverse<'a, T>);
 
-impl<T> Iterator for Descendants<T> {
-  type Item = ViewRef<T>;
+impl<'a, T> Iterator for Descendants<'a, T> {
+  type Item = ViewId;
 
-  /// Panics if the node about to be yielded is currently mutability borrowed.
-  fn next(&mut self) -> Option<ViewRef<T>> {
+  fn next(&mut self) -> Option<ViewId> {
     loop {
       match self.0.next() {
         Some(NodeEdge::Start(node)) => return Some(node),
@@ -513,39 +448,39 @@ pub enum NodeEdge<T> {
   /// Indicates that start of a node that has children.
   /// Yielded by `Traverse::next` before the node’s descendants.
   /// In HTML or XML, this corresponds to an opening tag like `<div>`
-  Start(ViewRef<T>),
+  Start(T),
 
   /// Indicates that end of a node that has children.
   /// Yielded by `Traverse::next` after the node’s descendants.
   /// In HTML or XML, this corresponds to a closing tag like `</div>`
-  End(ViewRef<T>),
+  End(T),
 }
 
 /// An iterator of references to a given node and its descendants, in tree order.
-pub struct Traverse<T> {
-  root: ViewRef<T>,
-  next: Option<NodeEdge<T>>,
+pub struct Traverse<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  root: ViewId,
+  next: Option<NodeEdge<ViewId>>,
 }
 
-impl<T> Iterator for Traverse<T> {
-  type Item = NodeEdge<T>;
+impl<'a, T> Iterator for Traverse<'a, T> {
+  type Item = NodeEdge<ViewId>;
 
-  /// Panics if the node about to be yielded is currently mutability borrowed.
-  fn next(&mut self) -> Option<NodeEdge<T>> {
+  fn next(&mut self) -> Option<NodeEdge<ViewId>> {
     match self.next.take() {
       Some(item) => {
         self.next = match item {
-          NodeEdge::Start(ref node) => match node.first_child() {
+          NodeEdge::Start(node) => match self.arena[node].first_child {
             Some(first_child) => Some(NodeEdge::Start(first_child)),
             None => Some(NodeEdge::End(node.clone())),
           },
-          NodeEdge::End(ref node) => {
-            if node.same_node(&self.root) {
+          NodeEdge::End(node) => {
+            if node == self.root {
               None
             } else {
-              match node.next_sibling() {
+              match self.arena[node].next_sibling {
                 Some(next_sibling) => Some(NodeEdge::Start(next_sibling)),
-                None => match node.parent() {
+                None => match self.arena[node].parent {
                   Some(parent) => Some(NodeEdge::End(parent)),
 
                   // `node.parent()` here can only be `None`
@@ -566,30 +501,30 @@ impl<T> Iterator for Traverse<T> {
 }
 
 /// An iterator of references to a given node and its descendants, in reverse tree order.
-pub struct ReverseTraverse<T> {
-  root: ViewRef<T>,
-  next: Option<NodeEdge<T>>,
+pub struct ReverseTraverse<'a, T: 'a> {
+  arena: &'a Arena<T>,
+  root: ViewId,
+  next: Option<NodeEdge<ViewId>>,
 }
 
-impl<T> Iterator for ReverseTraverse<T> {
-  type Item = NodeEdge<T>;
+impl<'a, T> Iterator for ReverseTraverse<'a, T> {
+  type Item = NodeEdge<ViewId>;
 
-  /// Panics if the node about to be yielded is currently mutability borrowed.
-  fn next(&mut self) -> Option<NodeEdge<T>> {
+  fn next(&mut self) -> Option<NodeEdge<ViewId>> {
     match self.next.take() {
       Some(item) => {
         self.next = match item {
-          NodeEdge::End(ref node) => match node.last_child() {
+          NodeEdge::End(node) => match self.arena[node].last_child {
             Some(last_child) => Some(NodeEdge::End(last_child)),
             None => Some(NodeEdge::Start(node.clone())),
           },
-          NodeEdge::Start(ref node) => {
-            if node.same_node(&self.root) {
+          NodeEdge::Start(node) => {
+            if node == self.root {
               None
             } else {
-              match node.previous_sibling() {
+              match self.arena[node].previous_sibling {
                 Some(previous_sibling) => Some(NodeEdge::End(previous_sibling)),
-                None => match node.parent() {
+                None => match self.arena[node].parent {
                   Some(parent) => Some(NodeEdge::Start(parent)),
 
                   // `node.parent()` here can only be `None`
@@ -607,4 +542,76 @@ impl<T> Iterator for ReverseTraverse<T> {
       None => None,
     }
   }
+}
+
+#[test]
+fn it_works() {
+  use std::cell::Cell;
+
+  struct DropTracker<'a>(&'a Cell<u32>);
+  impl<'a> Drop for DropTracker<'a> {
+    fn drop(&mut self) {
+      self.0.set(&self.0.get() + 1);
+    }
+  }
+
+  let drop_counter = Cell::new(0);
+  {
+    let mut new_counter = 0;
+    let arena = &mut Arena::new();
+    macro_rules! new {
+      () => {{
+        new_counter += 1;
+        arena.new_node((new_counter, DropTracker(&drop_counter)))
+      }};
+    };
+
+    let a = new!(); // 1
+    a.append(new!(), arena); // 2
+    a.append(new!(), arena); // 3
+    a.prepend(new!(), arena); // 4
+    let b = new!(); // 5
+    b.append(a, arena);
+    a.insert_before(new!(), arena); // 6
+    a.insert_before(new!(), arena); // 7
+    a.insert_after(new!(), arena); // 8
+    a.insert_after(new!(), arena); // 9
+    let c = new!(); // 10
+    b.append(c, arena);
+
+    assert_eq!(drop_counter.get(), 0);
+    arena[c].previous_sibling().unwrap().detach(arena);
+    assert_eq!(drop_counter.get(), 0);
+
+    assert_eq!(
+      b.descendants(arena)
+        .map(|node| arena[node].data.0)
+        .collect::<Vec<_>>(),
+      [5, 6, 7, 1, 4, 2, 3, 9, 10]
+    );
+  }
+
+  assert_eq!(drop_counter.get(), 10);
+}
+
+#[cfg(test_threads)]
+#[test]
+fn threaded() {
+  use std::thread;
+
+  let arena = &mut Arena::new();
+  let root = arena.new_node("".to_string());
+  root.append(arena.new_node("b".to_string()), arena);
+  root.prepend(arena.new_node("a".to_string()), arena);
+  root.append(arena.new_node("c".to_string()), arena);
+
+  macro_rules! collect_data {
+    ($iter:expr) => {
+      $iter.map(|node| &*arena[node].data).collect::<Vec<&str>>()
+    };
+  }
+  let thread_1 = thread::scoped(|| collect_data!(root.children(arena)));
+  let thread_2 = thread::scoped(|| collect_data!(root.reverse_children(arena)));
+  assert_eq!(thread_1.join(), ["a", "b", "c"]);
+  assert_eq!(thread_2.join(), ["c", "b", "a"]);
 }

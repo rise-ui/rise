@@ -64,15 +64,15 @@ impl Default for WindowOptions {
   }
 }
 
-pub struct App {
+pub struct App<T> {
   event_loop: Rc<RefCell<EventsLoop>>,
   window_initialized: bool,
   frame_time: Instant,
-  ui: Ui,
+  ui: Ui<T>,
 }
 
-impl App {
-  pub fn new(options: WindowOptions, layout: Layout) -> App {
+impl<T> App<T> {
+  pub fn new(options: WindowOptions, layout: Layout<T>) -> App<T> {
     let window_builder = WindowBuilder::new()
       .with_dimensions(options.window_size.0, options.window_size.1)
       .with_title(&*options.title)
