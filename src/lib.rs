@@ -1,6 +1,3 @@
-#![feature(box_syntax)]
-#![feature(proc_macro)]
-
 #[macro_use]
 extern crate rise_stylesheet;
 #[macro_use]
