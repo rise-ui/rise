@@ -1,0 +1,8 @@
+imports_layout = "HorizontalVertical"
+empty_item_single_line = false
+use_small_heuristics = false
+imports_indent = "Block"
+fn_single_line = false
+comment_width = 100
+max_width = 130
+tab_spaces = 2

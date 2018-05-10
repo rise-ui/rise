@@ -4,28 +4,34 @@
 extern crate rise;
 extern crate rise_stylesheet;
 
-use rise::{App, Layout, ViewRef, WindowOptions, WindowPosition};
+use rise::{App, Layout, NodeContext, WindowOptions, WindowPosition};
 use rise_stylesheet::styles::prelude::{Style, Stylesheet};
+use rise_stylesheet::yoga::Node;
+use std::boxed::Box;
 
-fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> ViewRef<()> {
-  let mut style = stylesheet.take(style_name.to_string()).unwrap();
-  style.apply_tag("default".to_string());
-  ViewRef::new((), style)
+fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> Node {
+  use rise_stylesheet::styles::style::StyleExt;
+  use rise_stylesheet::yoga::NodeContextExt;
+
+  let style = stylesheet.take(style_name.to_string()).unwrap();
+
+  Node::new_with_context(NodeContext {
+    data: Box::new(style_name.to_string()),
+    style: Box::new(style),
+  })
 }
 
 fn main() {
   let stylesheet = {
     let mut stylesheet = Stylesheet::default();
-    stylesheet
-      .load_from_string(include_str!("styles.json").to_string())
-      .unwrap();
-
+    stylesheet.load_from_string(include_str!("styles.json").to_string()).unwrap();
     stylesheet
   };
 
-  let layout_container = get_view_by_style(stylesheet.clone(), "layout");
-  let circle_child = get_view_by_style(stylesheet.clone(), "circle");
-  layout_container.append(circle_child);
+  let mut layout_container = get_view_by_style(stylesheet.clone(), "layout");
+  let mut child = get_view_by_style(stylesheet.clone(), "circle");
+
+  layout_container.insert_child(&mut child, 0);
 
   let app = App::new(
     WindowOptions {
