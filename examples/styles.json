@@ -3,19 +3,19 @@
     "tag_name": "default",
     "style": {
       "background": "#EEEEEE",
-      "border_radius": 10,
-      "flex": {
-        "justify_content": "Center",
-        "align_items": "Center"
-      }
+      "border_radius": 10
     }
   }],
 
   "circle": [{
     "tag_name": "default",
     "style": {
-      "background": "#EEEEEE",
+      "background": "#000000",
       "border_radius": 10,
+      "margin": {
+        "top": "100px"
+      },
+
       "sizes": {
         "height": "100px",
         "width": "100px"

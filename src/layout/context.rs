@@ -45,12 +45,12 @@ impl StyleContextExt for Node {
   }
 
   fn render(&self, render: Rc<RefCell<RenderBuilder>>) {
-    println!("Builded now: {}", self.child_count());
     self.draw(render.clone());
 
     if let Some(childrens) = self.childrens() {
       for children in childrens.iter() {
         children.render(render.clone());
+        render.borrow_mut().builder.pop_stacking_context();
       }
     }
   }

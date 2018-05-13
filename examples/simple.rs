@@ -14,11 +14,16 @@ fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> Node {
   use rise_stylesheet::yoga::NodeContextExt;
 
   let style = stylesheet.take(style_name.to_string()).unwrap();
-
-  Node::new_with_context(NodeContext {
+  let mut context = NodeContext {
     data: Box::new(style_name.to_string()),
     style: Box::new(style),
-  })
+  };
+
+  let mut node = Node::new();
+  context.style.apply_tag(&mut node, "default".to_string());
+  node.set_context(Some(context));
+
+  node
 }
 
 fn main() {
