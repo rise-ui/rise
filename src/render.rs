@@ -38,10 +38,7 @@ impl WebRenderContext {
     };
 
     let frame_ready = Arc::new(AtomicBool::new(false));
-    let notifier = Box::new(Notifier::new(
-      events_loop.create_proxy(),
-      Arc::clone(&frame_ready),
-    ));
+    let notifier = Box::new(Notifier::new(events_loop.create_proxy(), Arc::clone(&frame_ready)));
 
     let (mut renderer, sender) = webrender::Renderer::new(gl, notifier, opts).unwrap();
     let api = sender.create_api();
@@ -82,12 +79,7 @@ impl WebRenderContext {
     }
   }
 
-  pub fn set_display_list(
-    &mut self,
-    builder: DisplayListBuilder,
-    resources: ResourceUpdates,
-    window_size: LayoutSize,
-  ) {
+  pub fn set_display_list(&mut self, builder: DisplayListBuilder, resources: ResourceUpdates, window_size: LayoutSize) {
     let mut txn = Transaction::new();
     txn.set_display_list(self.epoch, None, window_size, builder.finalize(), true);
 
@@ -123,12 +115,7 @@ impl WebRenderContext {
 
   pub fn window_resized(&mut self, size: DeviceUintSize) {
     let window_rect = DeviceUintRect::new(TypedPoint2D::zero(), size);
-    self.render_api.set_window_parameters(
-      self.document_id,
-      size,
-      window_rect,
-      self.device_pixel_ratio,
-    );
+    self.render_api.set_window_parameters(self.document_id, size, window_rect, self.device_pixel_ratio);
   }
 }
 
@@ -157,10 +144,7 @@ impl RenderNotifier for Notifier {
   }
 
   fn clone(&self) -> Box<RenderNotifier + 'static> {
-    Box::new(Notifier::new(
-      self.events_proxy.clone(),
-      self.frame_ready.clone(),
-    ))
+    Box::new(Notifier::new(self.events_proxy.clone(), self.frame_ready.clone()))
   }
 }
 
@@ -174,14 +158,12 @@ impl webrender::ExternalImageHandler for QuickExternalImageHandler {
     webrender::ExternalImage {
       uv: TexelRect {
         uv0: TypedPoint2D::zero(),
-        uv1: TypedPoint2D::<f32, DevicePixel>::new(
-          descriptor.width as f32,
-          descriptor.height as f32,
-        ),
+        uv1: TypedPoint2D::<f32, DevicePixel>::new(descriptor.width as f32, descriptor.height as f32),
       },
       source: webrender::ExternalImageSource::NativeTexture(key.0 as _),
     }
   }
 
-  fn unlock(&mut self, _key: ExternalImageId, _channel_index: u8) {}
+  fn unlock(&mut self, _key: ExternalImageId, _channel_index: u8) {
+  }
 }

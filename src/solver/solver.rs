@@ -16,7 +16,8 @@ impl Solver {
     }
   }
 
-  fn calculate(&mut self) {}
+  fn calculate(&mut self) {
+  }
 
   pub fn set_cursor_position(&mut self, position: (f64, f64)) {
     self.cursor_position = position;

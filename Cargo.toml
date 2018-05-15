@@ -10,8 +10,8 @@ gleam = "0.5"
 log = "0.3"
 
 webrender = { git = "https://github.com/servo/webrender", rev = "23fa7512dd5e6249ccf798267418d20f2805376e"}
-rise-stylesheet = { path = "../rise-stylesheet"}
-# rise-stylesheet = { git = "https://github.com/rise-ui/rise-stylesheet"}
+rise-stylesheet = { git = "https://github.com/rise-ui/rise-stylesheet"}
+# rise-stylesheet = { path = "../rise-stylesheet"}
 limn-text_layout = { path = "./text_layout" }
 ordered-float = "0.5.0"
 palette = "0.3"

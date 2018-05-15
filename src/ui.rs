@@ -21,12 +21,7 @@ pub struct Ui {
 }
 
 impl Ui {
-  pub fn new(
-    event_loop: Rc<RefCell<EventsLoop>>,
-    render: WebRenderContext,
-    window: Window,
-    layout: Layout,
-  ) -> Ui {
+  pub fn new(event_loop: Rc<RefCell<EventsLoop>>, render: WebRenderContext, window: Window, layout: Layout) -> Ui {
     Ui {
       shortcuts: Rc::new(RefCell::new(Shortcuts::new())),
       render: Rc::new(RefCell::new(render)),
@@ -61,9 +56,7 @@ impl Ui {
     let render = self.render.clone();
     let window = self.window.clone();
 
-    let builder_context = render
-      .borrow_mut()
-      .render_builder(self.window.borrow().size_dp());
+    let builder_context = render.borrow_mut().render_builder(self.window.borrow().size_dp());
 
     let builder_context = Rc::new(RefCell::new(builder_context));
 

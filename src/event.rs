@@ -1,5 +1,5 @@
 pub enum ViewEvent {
   Clicked,
   Hovered,
-  Focused
+  Focused,
 }

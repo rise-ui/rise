@@ -2,23 +2,47 @@
   "layout": [{
     "tag_name": "default",
     "style": {
-      "background": "#EEEEEE",
-      "border_radius": 10
+      "background": "rgba(0,0,0, 0.4)",
+      "border_radius": 100,
+      "padding": "10px",
+
+      "flex": {
+        "justify_content": "center",
+        "align_items": "center"
+      },
+
+      "borders": {
+        "top": {
+          "color": "#E91E63",
+          "width": 5
+        }
+      }
     }
   }],
 
-  "circle": [{
+  "greeze": [{
     "tag_name": "default",
     "style": {
-      "background": "#000000",
+      "background": "#2196F3",
       "border_radius": 10,
-      "margin": {
-        "top": "100px"
-      },
 
       "sizes": {
-        "height": "100px",
-        "width": "100px"
+        "height": "150px",
+        "width": "150px"
+      }
+    }
+  }],
+
+  "wheeze": [{
+    "tag_name": "default",
+    "style": {
+      "background": "#8BC34A",
+      "border_radius": 150,
+      "margin": "10px",
+
+      "sizes": {
+        "height": "150px",
+        "width": "150px"
       }
     }
   }]

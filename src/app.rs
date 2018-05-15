@@ -33,20 +33,13 @@ impl WindowOptions {
     let monitor_size = (monitor_size.0 as f32 / hidpi, monitor_size.1 as f32 / hidpi);
 
     match &self.position {
-      &WindowPosition::MiddleLeft => {
-        position = (0, ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32)
-      }
+      &WindowPosition::MiddleLeft => position = (0, ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32),
       &WindowPosition::MiddleRight => {
-        position = (
-          (monitor_size.1 - window_size.1 as f32) as i32,
-          ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32,
-        )
+        position = ((monitor_size.1 - window_size.1 as f32) as i32, ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32)
       }
       &WindowPosition::Center => {
-        position = (
-          ((monitor_size.0 - window_size.0 as f32) / 2.0) as i32,
-          ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32,
-        )
+        position =
+          (((monitor_size.0 - window_size.0 as f32) / 2.0) as i32, ((monitor_size.1 - window_size.1 as f32) / 2.0) as i32)
       }
     }
 
@@ -102,8 +95,7 @@ impl App {
     use std::io::{self, Write};
 
     let elapsed_time = self.frame_time.elapsed();
-    let elapsed_ms =
-      (elapsed_time.as_secs() * 1_000) + (elapsed_time.subsec_nanos() / 1_000_000) as u64;
+    let elapsed_ms = (elapsed_time.as_secs() * 1_000) + (elapsed_time.subsec_nanos() / 1_000_000) as u64;
 
     if log {
       let text = format!("\rframe time: {:?}ms", elapsed_ms);
@@ -145,8 +137,16 @@ impl App {
   }
 
   fn handle_window_event(&mut self, event: Event) {
-    if let Event::WindowEvent { event, .. } = event {
-      if let WindowEvent::KeyboardInput { input, .. } = event {
+    if let Event::WindowEvent {
+      event,
+      ..
+    } = event
+    {
+      if let WindowEvent::KeyboardInput {
+        input,
+        ..
+      } = event
+      {
         let shortcuts = self.ui.shortcuts.clone();
         shortcuts.borrow_mut().send_keyboard_input(input);
       }

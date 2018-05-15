@@ -44,7 +44,10 @@ impl fmt::Debug for Shortcut {
 impl Shortcut {
   pub fn new<F: FnMut(Shortcut) + 'static>(keys: Vec<KeyCode>, listener: F) -> Shortcut {
     let listener = Rc::new(RefCell::new(listener));
-    Shortcut { listener, keys }
+    Shortcut {
+      listener,
+      keys,
+    }
   }
 }
 
@@ -113,11 +116,7 @@ impl Shortcuts {
       }
 
       ElementState::Released => {
-        if let Some(index) = self
-          .active_keys
-          .iter()
-          .position(|ref s| s.scancode == input.scancode)
-        {
+        if let Some(index) = self.active_keys.iter().position(|ref s| s.scancode == input.scancode) {
           self.active_keys.remove(index);
         }
       }

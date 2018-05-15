@@ -50,7 +50,9 @@ impl StyleContextExt for Node {
     if let Some(childrens) = self.childrens() {
       for children in childrens.iter() {
         children.render(render.clone());
+
         render.borrow_mut().builder.pop_stacking_context();
+        render.borrow_mut().builder.pop_clip_id();
       }
     }
   }

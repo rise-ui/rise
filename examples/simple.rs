@@ -5,14 +5,13 @@ extern crate rise;
 extern crate rise_stylesheet;
 
 use rise::{App, Layout, NodeContext, WindowOptions, WindowPosition};
-use rise_stylesheet::styles::prelude::{Style, Stylesheet};
-use rise_stylesheet::yoga::Node;
+use rise_stylesheet::styles::prelude::Stylesheet;
 use std::boxed::Box;
 
-fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> Node {
-  use rise_stylesheet::styles::style::StyleExt;
-  use rise_stylesheet::yoga::NodeContextExt;
+use rise_stylesheet::yoga::Node;
+use rise_stylesheet::yoga::NodeContextExt;
 
+fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> Node {
   let style = stylesheet.take(style_name.to_string()).unwrap();
   let mut context = NodeContext {
     data: Box::new(style_name.to_string()),
@@ -20,7 +19,7 @@ fn get_view_by_style(stylesheet: Stylesheet, style_name: &str) -> Node {
   };
 
   let mut node = Node::new();
-  context.style.apply_tag(&mut node, "default".to_string());
+  context.style.apply_tag(&mut node, "default".to_string()).unwrap();
   node.set_context(Some(context));
 
   node
@@ -34,9 +33,12 @@ fn main() {
   };
 
   let mut layout_container = get_view_by_style(stylesheet.clone(), "layout");
-  let mut child = get_view_by_style(stylesheet.clone(), "circle");
 
+  let mut child = get_view_by_style(stylesheet.clone(), "greeze");
   layout_container.insert_child(&mut child, 0);
+
+  let mut wheeze = get_view_by_style(stylesheet.clone(), "wheeze");
+  layout_container.insert_child(&mut wheeze, 1);
 
   let app = App::new(
     WindowOptions {
