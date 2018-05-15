@@ -1,9 +1,8 @@
 use euclid;
-use geometry::Size;
 use gleam::gl;
 use glutin;
 use glutin::GlContext;
-use webrender::api::DeviceUintSize;
+use webrender::api::{DeviceUintSize, LayoutSize};
 
 pub struct Window {
   pub window: glutin::GlWindow,
@@ -52,9 +51,9 @@ impl Window {
     return (width as f32, height as f32);
   }
 
-  pub fn size_dp(&self) -> Size {
+  pub fn size_dp(&self) -> LayoutSize {
     let (width, height) = self.window.get_inner_size().unwrap();
     let hidpi = self.hidpi_factor();
-    Size::new(width as f32 / hidpi, height as f32 / hidpi)
+    LayoutSize::new(width as f32 / hidpi, height as f32 / hidpi)
   }
 }

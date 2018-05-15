@@ -27,7 +27,6 @@ extern crate rusttype;
 
 mod app;
 mod event;
-mod geometry;
 mod layout;
 mod render;
 mod resources;

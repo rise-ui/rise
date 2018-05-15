@@ -8,7 +8,6 @@ use webrender;
 use webrender::api::*;
 
 use euclid::TypedPoint2D;
-use geometry::{Point, Rect, Size};
 use resources;
 use window::Window;
 
@@ -60,14 +59,14 @@ impl WebRenderContext {
     api.send_transaction(document_id, txn);
 
     WebRenderContext {
-      renderer: renderer,
-      render_api: api,
-      epoch: epoch,
-      pipeline_id: pipeline_id,
-      document_id: document_id,
       device_pixel_ratio: window.hidpi_factor(),
-      root_background_color: root_background_color,
-      frame_ready: frame_ready,
+      root_background_color,
+      render_api: api,
+      frame_ready,
+      pipeline_id,
+      document_id,
+      renderer,
+      epoch,
     }
   }
 
@@ -78,8 +77,8 @@ impl WebRenderContext {
   pub fn render_builder(&mut self, window_size: LayoutSize) -> RenderBuilder {
     let builder = DisplayListBuilder::new(self.pipeline_id, window_size);
     RenderBuilder {
-      builder: builder,
       resources: ResourceUpdates::new(),
+      builder,
     }
   }
 
@@ -140,8 +139,8 @@ struct Notifier {
 impl Notifier {
   fn new(events_proxy: glutin::EventsLoopProxy, frame_ready: Arc<AtomicBool>) -> Self {
     Notifier {
-      events_proxy: events_proxy,
-      frame_ready: frame_ready,
+      events_proxy,
+      frame_ready,
     }
   }
 }
@@ -153,7 +152,7 @@ impl RenderNotifier for Notifier {
     self.frame_ready.store(true, atomic::Ordering::Release);
   }
 
-  fn new_document_ready(&self, _: DocumentId, _: bool, _: bool) {
+  fn new_frame_ready(&self, _: DocumentId, _: bool, _: bool) {
     self.wake_up();
   }
 
