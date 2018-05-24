@@ -1,4 +1,11 @@
 {
+  "window": [{
+    "tag_name": "default",
+    "style": {
+      "background": "rgba(0,0,0,0)"
+    }
+  }],
+
   "layout": [{
     "tag_name": "default",
     "style": {
@@ -6,9 +13,9 @@
       "border_radius": 100,
       "padding": "10px",
 
-      "flex": {
-        "justify_content": "center",
-        "align_items": "center"
+      "sizes": {
+        "height": "500px",
+        "width": "500px"
       },
 
       "borders": {
@@ -16,33 +23,24 @@
           "color": "#E91E63",
           "width": 5
         }
+      },
+
+      "flex": {
+        "justify_content": "center",
+        "align_items": "center",
+        "flex": 1.0
       }
     }
   }],
 
-  "greeze": [{
+  "child": [{
     "tag_name": "default",
     "style": {
-      "background": "#2196F3",
-      "border_radius": 10,
-
+      "background": "#E91E63",
+      "border_radius": 25,
       "sizes": {
-        "height": "150px",
-        "width": "150px"
-      }
-    }
-  }],
-
-  "wheeze": [{
-    "tag_name": "default",
-    "style": {
-      "background": "#8BC34A",
-      "border_radius": 150,
-      "margin": "10px",
-
-      "sizes": {
-        "height": "150px",
-        "width": "150px"
+        "height": "100px",
+        "width": "100px"
       }
     }
   }]

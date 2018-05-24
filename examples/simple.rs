@@ -32,13 +32,14 @@ fn main() {
     stylesheet
   };
 
+  let mut window = get_view_by_style(stylesheet.clone(), "window");
   let mut layout_container = get_view_by_style(stylesheet.clone(), "layout");
+  window.insert_child(&mut layout_container, 0);
 
-  let mut child = get_view_by_style(stylesheet.clone(), "greeze");
-  layout_container.insert_child(&mut child, 0);
-
-  let mut wheeze = get_view_by_style(stylesheet.clone(), "wheeze");
-  layout_container.insert_child(&mut wheeze, 1);
+  let mut child_one = get_view_by_style(stylesheet.clone(), "child");
+  let mut child_two = get_view_by_style(stylesheet.clone(), "child");
+  layout_container.insert_child(&mut child_one, 0);
+  layout_container.insert_child(&mut child_two, 1);
 
   let app = App::new(
     WindowOptions {
@@ -46,7 +47,7 @@ fn main() {
       position: WindowPosition::Center,
       window_size: (500, 500),
     },
-    Layout::new(layout_container),
+    Layout::new(window),
   );
 
   app.run();

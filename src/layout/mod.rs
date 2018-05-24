@@ -23,6 +23,7 @@ impl Layout {
   }
 
   pub fn render(&mut self, render: Rc<RefCell<RenderBuilder>>) {
+    // println!("Start iterate here");
     self.root.render(render);
   }
 }
