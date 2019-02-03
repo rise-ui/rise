@@ -2,3 +2,6 @@
 /target
 **/*.rs.bk
 rls/
+
+/target
+**/*.rs.bk

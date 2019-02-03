@@ -1,78 +1,98 @@
 // Layout
 use glutin::EventsLoop;
-use layout::Layout;
-use solver::prelude::Shortcuts;
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use drawer::{Drawer, PropertiesCollection, CursorComputed};
+use yoga::Direction;
+use dom::events::*;
+use dom::node::*;
+use dom::traits::*;
+use dom::tree::*;
+
 // Core contexts
-use render::{RenderBuilder, WebRenderContext};
-use window::Window;
+use super::render::WebRenderContext;
+use super::window::Window;
 
 pub struct Ui {
-  pub render: Rc<RefCell<WebRenderContext>>,
-  pub shortcuts: Rc<RefCell<Shortcuts>>,
-  event_loop: Rc<RefCell<EventsLoop>>,
-  pub window: Rc<RefCell<Window>>,
-  pub layout: Rc<RefCell<Layout>>,
-  needs_redraw: bool,
-  should_close: bool,
+    pub render: WebRenderContext,
+    pub dom: DOMTree<BasicEvent>,
+    pub window: Window,
+
+    dom_props: PropertiesCollection<DOMNodeId<BasicEvent>>,
+    event_loop: Rc<RefCell<EventsLoop>>,
+    hovered: CursorComputed,
+    needs_redraw: bool,
+    should_close: bool,
 }
 
 impl Ui {
-  pub fn new(event_loop: Rc<RefCell<EventsLoop>>, render: WebRenderContext, window: Window, layout: Layout) -> Ui {
-    Ui {
-      shortcuts: Rc::new(RefCell::new(Shortcuts::new())),
-      render: Rc::new(RefCell::new(render)),
-      window: Rc::new(RefCell::new(window)),
-      layout: Rc::new(RefCell::new(layout)),
-      should_close: false,
-      needs_redraw: true,
-      event_loop,
+    pub fn new(
+        event_loop: Rc<RefCell<EventsLoop>>,
+        render: WebRenderContext,
+        mut dom: DOMTree<BasicEvent>,
+        window: Window,
+    ) -> Ui {
+        {
+            let mut document = dom.document_mut();
+
+            document.build_layout();
+            document.value_mut().reflow_subtree(1000, 500, Direction::LTR);
+        }
+        
+        Ui {
+            dom_props: PropertiesCollection::default(),
+            hovered: CursorComputed::default(),
+            should_close: false,
+            needs_redraw: true,
+            event_loop,
+            render,
+            window,
+            dom,
+        }
     }
-  }
 
-  pub fn redraw(&mut self) {
-    self.needs_redraw = true;
-  }
+    pub fn redraw(&mut self) {
+        self.needs_redraw = true;
+    }
 
-  pub fn needs_redraw(&self) -> bool {
-    self.needs_redraw
-  }
+    pub fn needs_redraw(&self) -> bool {
+        self.needs_redraw
+    }
 
-  pub fn should_close(&self) -> bool {
-    self.should_close
-  }
+    pub fn should_close(&self) -> bool {
+        self.should_close
+    }
 
-  pub fn close_app(self) {
-    let render = Rc::clone(&self.render);
-    let render = render.borrow();
-    // @TODO: Fix close app
-    // render.deinit();
-  }
+    pub fn close_app(self) {
+        self.render.deinit();
+    }
 
-  pub fn update(&mut self) {
-    let render = self.render.clone();
-    let window = self.window.clone();
+    pub fn update(&mut self) {
+        let mut builder_context = self.render.render_builder(self.window.size_dp());
+        let mut document = self.dom.document_mut();
 
-    let builder_context = render.borrow_mut().render_builder(self.window.borrow().size_dp());
+        document.calculate_styles(); // calculate inner styles with new layout props
+        document.value_mut().reflow_subtree(1000, 500, Direction::LTR); // recalculate yoga
 
-    let builder_context = Rc::new(RefCell::new(builder_context));
+        let mut list_builder = Drawer::new(
+            &mut self.dom_props,
+            &mut builder_context.builder,
 
-    // Render blocks
-    self.layout.borrow_mut().calculate(window.borrow().size());
-    self.layout.borrow_mut().render(builder_context.clone());
-    builder_context.borrow_mut().builder.pop_stacking_context();
+            self.render.pipeline_id,
+            self.render.document_id,
+        );
 
-    render.borrow_mut().set_display_list(
-      builder_context.borrow().builder.clone(),
-      builder_context.borrow().resources.clone(),
-      window.borrow().size_dp(),
-    );
+        list_builder.built_node(&mut document);
 
-    render.borrow_mut().update(window.borrow().size_px());
+        // Render blocks
+        self.render.set_display_list(
+            builder_context.resources,
+            builder_context.builder,
+            self.window.size_dp(),
+        );
 
-    window.borrow_mut().swap_buffers();
-  }
+        self.render.update(self.window.size_px());
+        self.window.swap_buffers();
+    }
 }

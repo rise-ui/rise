@@ -1,132 +1,153 @@
 use std::collections::HashMap;
 use std::io;
 
-use app_units;
-use failure::Error;
+use jss::webrender::api::{FontInstanceKey, AddFont, AddFontInstance, FontKey, RenderApi, ResourceUpdate};
 use font_loader::system_fonts::{self, FontProperty, FontPropertyBuilder};
+use failure::Error;
+use app_units;
 use rusttype;
-use webrender::api::{FontInstanceKey, FontKey, RenderApi, ResourceUpdates};
-
-use text_layout;
 
 pub type Font = rusttype::Font<'static>;
 
 pub struct FontInfo {
-  pub key: FontKey,
-  pub info: Font,
+    pub key: FontKey,
+    pub info: Font,
 }
 
 /// Set of properties used to specify a font
 #[derive(Default, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct FontDescriptor {
-  pub family_name: String,
-  pub italic: bool,
-  pub bold: bool,
+    pub family_name: String,
+    pub italic: bool,
+    pub bold: bool,
 }
 
 impl FontDescriptor {
-  pub fn from_family(family_name: &str) -> Self {
-    FontDescriptor {
-      family_name: String::from(family_name),
-      ..FontDescriptor::default()
+    pub fn from_family(family_name: &str) -> Self {
+        FontDescriptor {
+            family_name: String::from(family_name),
+            ..FontDescriptor::default()
+        }
     }
-  }
-  fn property(&self) -> FontProperty {
-    let mut builder = FontPropertyBuilder::new().family(&self.family_name);
-    if self.italic {
-      builder = builder.italic();
+    fn property(&self) -> FontProperty {
+        let mut builder = FontPropertyBuilder::new().family(&self.family_name);
+        if self.italic {
+            builder = builder.italic();
+        }
+        if self.bold {
+            builder = builder.bold();
+        }
+        builder.build()
     }
-    if self.bold {
-      builder = builder.bold();
-    }
-    builder.build()
-  }
+}
+
+pub fn px_to_pt(font_size_in_px: f32) -> f32 {
+    (font_size_in_px * 3.0) / 4.0
 }
 
 #[derive(Default)]
 pub struct FontLoader {
-  pub render: Option<RenderApi>,
-  pub font_info: HashMap<FontDescriptor, FontInfo>,
-  pub bundled_font_info: HashMap<FontDescriptor, FontInfo>,
-  pub font_instances: HashMap<(FontDescriptor, app_units::Au), FontInstanceKey>,
+    pub render: Option<RenderApi>,
+    pub font_info: HashMap<FontDescriptor, FontInfo>,
+    pub bundled_font_info: HashMap<FontDescriptor, FontInfo>,
+    pub font_instances: HashMap<(FontDescriptor, app_units::Au), FontInstanceKey>,
 }
 
 impl FontLoader {
-  pub fn new() -> Self {
-    FontLoader::default()
-  }
+    pub fn new() -> Self {
+        FontLoader::default()
+    }
 
-  pub fn get_font(&mut self, descriptor: &FontDescriptor) -> Result<&FontInfo, Error> {
-    if self.bundled_font_info.contains_key(descriptor) {
-      Ok(&self.bundled_font_info[descriptor])
-    } else {
-      if !self.font_info.contains_key(descriptor) {
-        if let Ok(data) = system_fonts_load_data(&descriptor.property()) {
-          let font_info = self.load_font(data)?;
-          self.font_info.insert(descriptor.clone(), font_info);
+    pub fn get_font(&mut self, descriptor: &FontDescriptor) -> Result<&FontInfo, Error> {
+        if self.bundled_font_info.contains_key(descriptor) {
+            Ok(&self.bundled_font_info[descriptor])
         } else {
-          return Err(io::Error::new(io::ErrorKind::InvalidData, "No system font found").into());
+            if !self.font_info.contains_key(descriptor) {
+                if let Ok(data) = system_fonts_load_data(&descriptor.property()) {
+                    let font_info = self.load_font(data)?;
+                    self.font_info.insert(descriptor.clone(), font_info);
+                } else {
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, "No system font found").into());
+                }
+            }
+            Ok(&self.font_info[descriptor])
         }
-      }
-      Ok(&self.font_info[descriptor])
     }
-  }
 
-  pub fn get_font_instance(&mut self, descriptor: &FontDescriptor, font_size: f32) -> Result<&FontInstanceKey, Error> {
-    let font_key = self.get_font(descriptor)?.key;
-    let size = app_units::Au::from_f32_px(text_layout::px_to_pt(font_size));
-    let key = (descriptor.clone(), size);
-    if !self.font_instances.contains_key(&key) {
-      let instance_key = webrender_load_font_instance(self.render_api(), font_key, size);
-      self.font_instances.insert(key.clone(), instance_key);
+    pub fn get_font_instance(
+        &mut self,
+        descriptor: &FontDescriptor,
+        font_size: f32,
+    ) -> Result<&FontInstanceKey, Error> {
+        let font_key = self.get_font(descriptor)?.key;
+        let size = app_units::Au::from_f32_px(px_to_pt(font_size));
+        let key = (descriptor.clone(), size);
+        
+        if !self.font_instances.contains_key(&key) {
+            let instance_key = webrender_load_font_instance(self.render_api(), font_key, size);
+            self.font_instances.insert(key.clone(), instance_key);
+        }
+
+        Ok(&self.font_instances[&key])
     }
-    Ok(&self.font_instances[&key])
-  }
 
-  fn load_font(&mut self, data: Vec<u8>) -> Result<FontInfo, Error> {
-    let font_info = rusttype_load_font_info(data.clone())?;
-    let key = webrender_load_font(self.render_api(), data)?;
-    Ok(FontInfo {
-      key: key,
-      info: font_info,
-    })
-  }
+    fn load_font(&mut self, data: Vec<u8>) -> Result<FontInfo, Error> {
+        let font_info = rusttype_load_font_info(data.clone())?;
+        let key = webrender_load_font(self.render_api(), data)?;
 
-  pub fn register_font_data(&mut self, descriptor: FontDescriptor, data: Vec<u8>) -> Result<(), Error> {
-    let info = self.load_font(data)?;
-    self.bundled_font_info.insert(descriptor.clone(), info);
-    Ok(())
-  }
+        Ok(FontInfo {
+            key: key,
+            info: font_info,
+        })
+    }
 
-  fn render_api(&self) -> &RenderApi {
-    self.render.as_ref().unwrap()
-  }
+    pub fn register_font_data(&mut self, descriptor: FontDescriptor, data: Vec<u8>) -> Result<(), Error> {
+        let info = self.load_font(data)?;
+        self.bundled_font_info.insert(descriptor.clone(), info);
+        Ok(())
+    }
+
+    fn render_api(&self) -> &RenderApi {
+        self.render.as_ref().unwrap()
+    }
 }
 
 fn webrender_load_font(render_api: &RenderApi, data: Vec<u8>) -> Result<FontKey, io::Error> {
-  let key = render_api.generate_font_key();
-  let mut resources = ResourceUpdates::new();
-  resources.add_raw_font(key, data, 0);
-  render_api.update_resources(resources);
-  Ok(key)
+    let key = render_api.generate_font_key();
+
+    let mut font = ResourceUpdate::AddFont(AddFont::Raw(key, data, 0));
+    render_api.update_resources(vec![ font ]);
+    Ok(key)
 }
 
-fn webrender_load_font_instance(render_api: &RenderApi, font_key: FontKey, size: app_units::Au) -> FontInstanceKey {
-  let instance_key = render_api.generate_font_instance_key();
-  let mut resources = ResourceUpdates::new();
-  resources.add_font_instance(instance_key, font_key, size, None, None, Vec::new());
-  render_api.update_resources(resources);
-  instance_key
+fn webrender_load_font_instance(
+    render_api: &RenderApi,
+    font_key: FontKey,
+    size: app_units::Au,
+) -> FontInstanceKey {
+    let instance_key = render_api.generate_font_instance_key();
+    let mut font_instance = ResourceUpdate::AddFontInstance(AddFontInstance {
+        platform_options: None,
+        variations: vec![],
+        key: instance_key,
+        glyph_size: size,
+        options: None,
+        font_key,
+    });
+
+    render_api.update_resources(vec![ font_instance ]);
+    instance_key
 }
 
 fn system_fonts_load_data(property: &FontProperty) -> Result<Vec<u8>, io::Error> {
-  let font = system_fonts::get(&property).map(|tuple| tuple.0).ok_or(io::Error::new(io::ErrorKind::NotFound, "Font not found"));
-  font
+    let font = system_fonts::get(&property)
+        .map(|tuple| tuple.0)
+        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Font not found"));
+    font
 }
 
 /// Read font data to get font information, v_metrics, glyph info etc.
 fn rusttype_load_font_info(data: Vec<u8>) -> Result<Font, io::Error> {
-  let collection = rusttype::FontCollection::from_bytes(data);
-  let mut font_iter = collection.into_fonts();
-  font_iter.next().ok_or(io::Error::new(io::ErrorKind::InvalidData, "Bad font format"))
+    let collection = rusttype::FontCollection::from_bytes(data)?;
+    collection.into_font().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Bad font format"))
 }
