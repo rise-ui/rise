@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate rise_stylesheet;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate maplit;
@@ -10,10 +8,12 @@ extern crate log;
 extern crate failure;
 
 extern crate image;
-extern crate limn_text_layout as text_layout;
 extern crate palette;
 extern crate rand;
-extern crate webrender;
+extern crate drawer;
+extern crate yoga;
+extern crate dom;
+extern crate jss;
 
 extern crate gleam;
 extern crate glutin;
@@ -25,21 +25,9 @@ extern crate font_loader;
 extern crate ordered_float;
 extern crate rusttype;
 
-mod app;
-mod event;
-mod layout;
-mod render;
-mod resources;
-mod solver;
-mod text;
-mod ui;
-mod utils;
-mod window;
-
-pub use app::*;
-pub use event::*;
-pub use layout::*;
-pub use render::*;
-pub use solver::*;
-pub use text::*;
-pub use window::*;
+pub use jss::webrender;
+pub mod app;
+pub mod render;
+pub mod resources;
+pub mod ui;
+pub mod window;
