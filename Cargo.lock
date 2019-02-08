@@ -427,6 +427,7 @@ name = "dom"
 version = "0.1.0"
 dependencies = [
  "enum-primitive-derive 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "jss 0.1.1",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "rsx-tree 0.1.0",

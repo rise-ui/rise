@@ -10,8 +10,6 @@ pub struct Window {
 impl Window {
     pub fn new(window_builder: glutin::WindowBuilder, events_loop: &glutin::EventsLoop) -> Self {
         let context = glutin::ContextBuilder::new()
-            .with_vsync(true)
-            // .with_multisampling(1)
             .with_gl(glutin::GlRequest::GlThenGles {
                 opengl_version: (3, 2),
                 opengles_version: (3, 0),
@@ -51,7 +49,11 @@ impl Window {
 
     pub fn size_px(&self) -> DeviceIntSize {
         let size = self.window.get_inner_size().unwrap();
-        DeviceIntSize::new(size.width as i32, size.height as i32)
+        let hidpi = self.hidpi_factor();
+
+        let width = size.width as f32 * hidpi;
+        let height = size.height as f32 * hidpi;
+        DeviceIntSize::new(width as i32, height as i32)
     }
 
     pub fn size(&self) -> (f32, f32) {
@@ -61,8 +63,7 @@ impl Window {
 
     pub fn size_dp(&self) -> LayoutSize {
         let size = self.window.get_inner_size().unwrap();
-        let hidpi = self.hidpi_factor();
 
-        LayoutSize::new(size.width as f32 / hidpi, size.height as f32 / hidpi)
+        LayoutSize::new(size.width as f32, size.height as f32)
     }
 }
