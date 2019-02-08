@@ -425,12 +425,13 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.1.0"
+source = "git+https://github.com/rise-ui/dom-lite#d85091138d68e0d80722d8e42fab383c28141734"
 dependencies = [
  "enum-primitive-derive 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "jss 0.1.1",
+ "jss 0.1.1 (git+https://github.com/rise-ui/jss-rs)",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
- "rsx-tree 0.1.0",
+ "rsx-tree 0.1.0 (git+https://github.com/rise-ui/dom-lite)",
  "self-tokenize-macro 0.1.0 (git+https://github.com/victorporof/rust-self-tokenize.git)",
  "self-tokenize-trait 0.1.0 (git+https://github.com/victorporof/rust-self-tokenize.git)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -446,15 +447,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "drawer"
 version = "0.1.0"
+source = "git+https://github.com/rise-ui/drawer#2f51caf99533850a9fe8afc4787384927fdd9400"
 dependencies = [
- "dom 0.1.0",
+ "dom 0.1.0 (git+https://github.com/rise-ui/dom-lite)",
  "enum_extract 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "jss 0.1.1",
+ "jss 0.1.1 (git+https://github.com/rise-ui/jss-rs)",
  "num-traits 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "resources 0.1.0",
  "yoga 0.2.0 (git+https://github.com/rise-ui/yoga-rs?branch=enum-case)",
 ]
 
@@ -771,6 +772,7 @@ dependencies = [
 [[package]]
 name = "jss"
 version = "0.1.1"
+source = "git+https://github.com/rise-ui/jss-rs#e9056827bdebcb601136042ba7aadb5a7febda62"
 dependencies = [
  "Inflector 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "css-color-parser 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1403,23 +1405,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "resources"
-version = "0.1.0"
-dependencies = [
- "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "failure_derive 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "image 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender 0.59.0 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
 name = "rise"
 version = "0.1.0"
 dependencies = [
  "app_units 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "dom 0.1.0",
- "drawer 0.1.0",
+ "dom 0.1.0 (git+https://github.com/rise-ui/dom-lite)",
+ "drawer 0.1.0 (git+https://github.com/rise-ui/drawer)",
  "env_logger 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1427,7 +1418,7 @@ dependencies = [
  "gleam 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "jss 0.1.1",
+ "jss 0.1.1 (git+https://github.com/rise-ui/jss-rs)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked-hash-map 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1446,6 +1437,7 @@ dependencies = [
 [[package]]
 name = "rsx-arena"
 version = "0.1.0"
+source = "git+https://github.com/rise-ui/dom-lite#d85091138d68e0d80722d8e42fab383c28141734"
 dependencies = [
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1455,8 +1447,9 @@ dependencies = [
 [[package]]
 name = "rsx-tree"
 version = "0.1.0"
+source = "git+https://github.com/rise-ui/dom-lite#d85091138d68e0d80722d8e42fab383c28141734"
 dependencies = [
- "rsx-arena 0.1.0",
+ "rsx-arena 0.1.0 (git+https://github.com/rise-ui/dom-lite)",
 ]
 
 [[package]]
@@ -2150,7 +2143,9 @@ dependencies = [
 "checksum derive_more 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3f57d78cf3bd45270dad4e70c21ec77a960b36c7a841ff9db76aaa775a8fb871"
 "checksum digest 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05f47366984d3ad862010e22c7ce81a7dbcaebbdfb37241a620f8b6596ee135c"
 "checksum dlib 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "77e51249a9d823a4cb79e3eca6dcd756153e8ed0157b6c04775d04bf1b13b76a"
+"checksum dom 0.1.0 (git+https://github.com/rise-ui/dom-lite)" = "<none>"
 "checksum downcast-rs 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "18df8ce4470c189d18aa926022da57544f31e154631eb4cfe796aea97051fe6c"
+"checksum drawer 0.1.0 (git+https://github.com/rise-ui/drawer)" = "<none>"
 "checksum dtoa 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6d301140eb411af13d3115f9a562c85cc6b541ade9dfa314132244aaee7489dd"
 "checksum dwrote 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c31c624339dab99c223a4b26c2e803b7c248adaca91549ce654c76f39a03f5c8"
 "checksum either 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3be565ca5c557d7f59e7cfcf1844f9e3033650c929c6566f511e8005f205c1d0"
@@ -2186,6 +2181,7 @@ dependencies = [
 "checksum interpolation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d3b7357d2bbc5ee92f8e899ab645233e43d21407573cceb37fed8bc3dede2c02"
 "checksum itoa 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1306f3464951f30e30d12373d31c79fbd52d236e5e896fd92f96ec7babbbe60b"
 "checksum jpeg-decoder 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)" = "c8b7d43206b34b3f94ea9445174bda196e772049b9bddbc620c9d29b2d20110d"
+"checksum jss 0.1.1 (git+https://github.com/rise-ui/jss-rs)" = "<none>"
 "checksum jss_derive 0.1.1 (git+https://github.com/rise-ui/jss_derive)" = "<none>"
 "checksum khronos_api 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "62237e6d326bd5871cd21469323bf096de81f1618cd82cbaf5d87825335aeb49"
 "checksum lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "cf186d1a8aa5f5bee5fd662bc9c1b949e0259e1bcc379d1f006847b0080c7417"
@@ -2260,6 +2256,8 @@ dependencies = [
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
 "checksum regex 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "37e7cbbd370869ce2e8dff25c7018702d10b21a20ef7135316f8daecd6c25b7f"
 "checksum regex-syntax 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)" = "8c2f35eedad5295fdf00a63d7d4b238135723f92b434ec06774dad15c7ab0861"
+"checksum rsx-arena 0.1.0 (git+https://github.com/rise-ui/dom-lite)" = "<none>"
+"checksum rsx-tree 0.1.0 (git+https://github.com/rise-ui/dom-lite)" = "<none>"
 "checksum rustc-demangle 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "adacaae16d02b6ec37fdc7acfcddf365978de76d1983d3ee22afc260e1ca9619"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum rusttype 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ae90f66c7ca5fb2c566d373c9ccb3ce1ae1aeebf236b74ad0d413196facb31b3"

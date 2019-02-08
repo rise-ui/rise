@@ -6,16 +6,20 @@ edition = "2018"
 
 [dependencies]
 yoga = { git = "https://github.com/rise-ui/yoga-rs", branch = "enum-case", features = ["serde_support"] }
+drawer = { git = "https://github.com/rise-ui/drawer", branch = "master" }
+dom = { git = "https://github.com/rise-ui/dom-lite", branch = "master" }
+jss = { git = "https://github.com/rise-ui/jss-rs", branch = "master" }
 euclid = { version = "0.19.5", features = ["serde"] }
-drawer = { path = "../drawer" }
-dom = { path = "../dom-lite" }
-jss = { path = "../jss-rs" }
 ordered-float = "1.0.1"
 env_logger = "0.6.0"
 palette = "0.4.1"
 rand = "0.6.4"
 gleam = "0.6.8"
 log = "0.4.6"
+
+# drawer = { path = "../drawer" }
+# dom = { path = "../dom-lite" }
+# jss = { path = "../jss-rs" }
 
 stb_truetype = "0.2.5"
 app_units = "0.7.1"
